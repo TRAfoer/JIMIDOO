@@ -376,6 +376,19 @@ a 橘猫    b 狸花猫    c 丑橘    d 耄耋    e 香蕉猫
 
 BlocksDS/Maxmod 不直接使用 MP3。短音效转换为 Maxmod 可用的采样并加入 soundbank；两首长音乐转换为适合 NDS 的单声道低采样率流式格式，并从 NitroFS 播放。
 
+本机已验证可用的转换工具为：
+
+```text
+C:\Desktop\格式工厂_v5.15.0_x64\格式工厂_v5.15.0.0_x64\ffmpeg.exe
+```
+
+构建辅助脚本通过可覆盖的 `FFMPEG` 路径调用它，不把该外部程序复制进仓库，也不在核心 Makefile 中强制绑定本机绝对路径。
+
+- 短音效转换为 16000 Hz、单声道、8-bit PCM WAV，再由 `mmutil -d` 打包进 Maxmod soundbank。当前全部短音效转换后预计约 300 KB。
+- 菜单音乐和战斗音乐转换为 22050 Hz、单声道、16-bit PCM WAV，保存在 NitroFS 中，通过 Maxmod 环形缓冲区流式播放。
+- 流式音乐仍包含在最终 `.nds` ROM 内，玩家无需额外复制文件，但不会整体载入主 RAM。
+- 不将两首背景音乐加入内存 soundbank；按当前时长估算，转换后的两首 16-bit WAV 合计约 6.8 MB，不适合普通 NDS 的 4 MB 主内存。
+
 音频初始化失败时游戏以静音模式继续运行。
 
 ## 18. 性能约束

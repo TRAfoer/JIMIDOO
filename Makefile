@@ -13,9 +13,9 @@ ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 
 NAME		:= PussiFight
 
-GAME_TITLE	:= PussiFight
-GAME_SUBTITLE	:= A Nintendo DS cat battle game
-GAME_AUTHOR	:= JiMiDoo
+GAME_TITLE	:=
+GAME_SUBTITLE	:=
+GAME_AUTHOR	:=
 GAME_ICON	:= icon.gif
 
 # A compile_commands.json file is created if this is set to 1

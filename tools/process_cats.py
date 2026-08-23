@@ -50,8 +50,9 @@ def indexed_texture(image: Image.Image) -> tuple[bytes, bytes]:
     """
     rgba = image.convert("RGBA")
     alpha = rgba.getchannel("A")
+    retained = alpha.point(lambda value: 255 if value >= 128 else 0)
     keyed = Image.new("RGB", rgba.size, TRANSPARENT_RGB)
-    keyed.paste(rgba.convert("RGB"), mask=alpha)
+    keyed.paste(rgba.convert("RGB"), mask=retained)
     quantized = keyed.quantize(
         colors=PALETTE_COLORS - 1,
         method=Image.Quantize.MEDIANCUT,
@@ -59,8 +60,8 @@ def indexed_texture(image: Image.Image) -> tuple[bytes, bytes]:
     )
     palette = quantized.getpalette()[: (PALETTE_COLORS - 1) * 3]
     indices = bytearray(quantized.tobytes())
-    alpha_bytes = alpha.tobytes()
-    for offset, value in enumerate(alpha_bytes):
+    retained_bytes = retained.tobytes()
+    for offset, value in enumerate(retained_bytes):
         indices[offset] = TRANSPARENT_INDEX if value < 128 else indices[offset] + 1
 
     ds_palette = bytearray()

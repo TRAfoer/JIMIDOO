@@ -3,6 +3,7 @@
 const char *const text_table_en[TEXT_COUNT] = {
     [TEXT_INVALID] = "Invalid text",
     [TEXT_GAME_TITLE] = "PussiFight",
+    [TEXT_TITLE_LANGUAGE_TOGGLE] = "SELECT: 中文/English",
 
     [TEXT_MENU_START_GAME] = "Start Game",
     [TEXT_MENU_RULES] = "Battle Rules",

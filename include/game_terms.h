@@ -6,6 +6,7 @@
 typedef enum GameTextId {
     TEXT_INVALID,
     TEXT_GAME_TITLE,
+    TEXT_TITLE_LANGUAGE_TOGGLE,
 
     TEXT_MENU_START_GAME,
     TEXT_MENU_RULES,

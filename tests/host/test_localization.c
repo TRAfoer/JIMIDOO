@@ -16,11 +16,13 @@ int main(void)
 
     textSetLanguage(LANG_ZH_CN);
     assert(strcmp(textGet(TEXT_GAME_TITLE), "基米斗") == 0);
+    assert(strcmp(textGet(TEXT_TITLE_LANGUAGE_TOGGLE), "SELECT: 中文/English") == 0);
     assert(strcmp(textGet(TEXT_CAT_NAME(CAT_MAODIE)), "耄耋") == 0);
     assert(strcmp(textGet((GameTextId)-1), textGet(TEXT_INVALID)) == 0);
 
     textSetLanguage(LANG_EN);
     assert(strcmp(textGet(TEXT_GAME_TITLE), "PussiFight") == 0);
+    assert(strcmp(textGet(TEXT_TITLE_LANGUAGE_TOGGLE), "SELECT: 中文/English") == 0);
     assert(strcmp(textGet(TEXT_CAT_NAME(CAT_MAODIE)), "Maodie") == 0);
     assert(strcmp(textGet((GameTextId)TEXT_COUNT), textGet(TEXT_INVALID)) == 0);
     return 0;

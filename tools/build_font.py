@@ -54,9 +54,9 @@ def build_subset(font_path: Path, characters: list[str], output: Path) -> None:
     font.save(output)
 
 
-def glyph_metrics(font_path: Path, characters: list[str]) -> tuple[Image.Image, list[tuple[int, int, int, int, int, int, int]]]:
+def glyph_metrics(font_path: Path, characters: list[str]) -> tuple[Image.Image, list[tuple[int, int, int, int, int, int, int, int]]]:
     font = ImageFont.truetype(str(font_path), PIXEL_SIZE)
-    placements: list[tuple[int, int, int, int, int, int, int]] = []
+    placements: list[tuple[int, int, int, int, int, int, int, int]] = []
     x = PADDING
     y = PADDING
     row_height = 0
@@ -71,7 +71,7 @@ def glyph_metrics(font_path: Path, characters: list[str]) -> tuple[Image.Image, 
             y += row_height + PADDING
             row_height = 0
         advance = int(round(font.getlength(character)))
-        placements.append((ord(character), x, y, width, height, advance, left))
+        placements.append((ord(character), x, y, width, height, advance, left, top))
         x += cell_width + PADDING
         row_height = max(row_height, cell_height)
 
@@ -79,13 +79,13 @@ def glyph_metrics(font_path: Path, characters: list[str]) -> tuple[Image.Image, 
     atlas = Image.new("L", (ATLAS_WIDTH, atlas_height), 0)
     draw = ImageDraw.Draw(atlas)
     for character, placement in zip(characters, placements):
-        _, glyph_x, glyph_y, _, _, _, left = placement
+        _, glyph_x, glyph_y, _, _, _, left, _ = placement
         _, top, _, _ = font.getbbox(character)
         draw.text((glyph_x - left, glyph_y - top), character, font=font, fill=255)
     return atlas, placements
 
 
-def write_metrics(output: Path, atlas_height: int, placements: list[tuple[int, int, int, int, int, int, int]]) -> None:
+def write_metrics(output: Path, atlas_height: int, placements: list[tuple[int, int, int, int, int, int, int, int]]) -> None:
     lines = [
         "#ifndef JIMIDOU_FONT_METRICS_H",
         "#define JIMIDOU_FONT_METRICS_H",
@@ -100,6 +100,7 @@ def write_metrics(output: Path, atlas_height: int, placements: list[tuple[int, i
         "    uint16_t height;",
         "    int16_t advance_x;",
         "    int16_t bearing_x;",
+        "    int16_t bearing_y;",
         "} JimiDooGlyphMetric;",
         "",
         f"#define JIMIDOO_FONT_ATLAS_WIDTH {ATLAS_WIDTH}",
@@ -108,9 +109,9 @@ def write_metrics(output: Path, atlas_height: int, placements: list[tuple[int, i
         "",
         "static const JimiDooGlyphMetric jimidou_font_glyphs[JIMIDOO_FONT_GLYPH_COUNT] = {",
     ]
-    for codepoint, x, y, width, height, advance, bearing_x in placements:
+    for codepoint, x, y, width, height, advance, bearing_x, bearing_y in placements:
         lines.append(
-            f"    {{ 0x{codepoint:04X}, {x}, {y}, {width}, {height}, {advance}, {bearing_x} }},"
+            f"    {{ 0x{codepoint:04X}, {x}, {y}, {width}, {height}, {advance}, {bearing_x}, {bearing_y} }},"
         )
     lines.extend(["};", "", "#endif", ""])
     output.parent.mkdir(parents=True, exist_ok=True)

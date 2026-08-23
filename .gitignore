@@ -1,2 +1,9 @@
 .worktrees/
 .superpowers/
+build/
+*.nds
+*.elf
+*.map
+*.dump
+tests/host/*.exe
+tests/host/*.obj

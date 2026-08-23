@@ -1,0 +1,82 @@
+#include "game_terms.h"
+
+const char *const text_table_en[TEXT_COUNT] = {
+    [TEXT_INVALID] = "Invalid text",
+    [TEXT_GAME_TITLE] = "PussiFight",
+
+    [TEXT_MENU_START_GAME] = "Start Game",
+    [TEXT_MENU_RULES] = "Battle Rules",
+    [TEXT_MENU_SETTINGS] = "Settings",
+    [TEXT_MENU_CREDITS] = "Credits",
+    [TEXT_MENU_BACK] = "Back",
+
+    [TEXT_SETTINGS_TITLE] = "Settings",
+    [TEXT_SETTINGS_LANGUAGE] = "Language",
+    [TEXT_SETTINGS_AUDIO] = "Audio",
+    [TEXT_SETTINGS_LANGUAGE_ZH_CN] = "Simplified Chinese",
+    [TEXT_SETTINGS_LANGUAGE_EN] = "English",
+    [TEXT_SETTINGS_AUDIO_ON] = "On",
+    [TEXT_SETTINGS_AUDIO_OFF] = "Off",
+
+    [TEXT_CAT_ORANGE] = "Orange Cat",
+    [TEXT_CAT_TABBY] = "Tabby Cat",
+    [TEXT_CAT_MAODIE] = "Maodie",
+    [TEXT_CAT_CHOUJU] = "Chouju",
+    [TEXT_CAT_BANANA] = "Banana Cat",
+
+    [TEXT_ACTION_HISS] = "Hiss",
+    [TEXT_ACTION_SCRATCH] = "Scratch",
+    [TEXT_ACTION_LAOWU_YOWL] = "Laowu Yowl",
+    [TEXT_ACTION_CHEW_GUM] = "Chew Gum",
+
+    [TEXT_BUFF_STRONG] = "Strong",
+    [TEXT_BUFF_FIERCE] = "Fierce",
+    [TEXT_BUFF_AGILE] = "Agile",
+    [TEXT_BUFF_LOUD_VOICE] = "Loud Voice",
+    [TEXT_BUFF_GUM_EXPERT] = "Gum Expert",
+    [TEXT_BUFF_DODGE] = "Dodge",
+    [TEXT_BUFF_DANGER_SENSE] = "Danger Sense",
+    [TEXT_BUFF_RAGE_CAPACITY] = "Rage Capacity",
+
+    [TEXT_BOSS_FERAL_CLAW] = "Feral Claw",
+    [TEXT_BOSS_IRON_WALL] = "Iron Wall",
+    [TEXT_BOSS_RAGE_HOWL] = "Rage Howl",
+    [TEXT_BOSS_COUNTER] = "Counter",
+    [TEXT_BOSS_DODGE] = "Evasion",
+    [TEXT_BOSS_GUM_CHEWER] = "Gum Chewer",
+    [TEXT_BOSS_PROPHET] = "Prophet",
+    [TEXT_BOSS_HYBRID] = "Hybrid",
+
+    [TEXT_STATUS_HP] = "HP",
+    [TEXT_STATUS_RAGE] = "Rage",
+    [TEXT_STATUS_COOLDOWN] = "Cooldown",
+    [TEXT_STATUS_STUNNED] = "Stunned",
+    [TEXT_STATUS_PAUSED] = "Paused",
+    [TEXT_STATUS_VICTORY] = "Victory",
+    [TEXT_STATUS_DEFEAT] = "Defeat",
+    [TEXT_STATUS_DODGED] = "Dodged",
+    [TEXT_STATUS_COUNTERED] = "Countered",
+    [TEXT_STATUS_WARNING] = "Warning",
+
+    [TEXT_RULES_TITLE] = "Battle Rules",
+    [TEXT_RULES_SCRATCH] = "Scratch deals damage",
+    [TEXT_RULES_HISS] = "Hiss interrupts actions",
+    [TEXT_RULES_YOWL] = "Laowu Yowl builds rage",
+    [TEXT_RULES_GUM] = "Chew Gum restores HP",
+    [TEXT_TUTORIAL_INPUT] = "L Hiss  R Scratch  Y Yowl  A Chew Gum",
+    [TEXT_TUTORIAL_PAUSE] = "START pauses battle",
+
+    [TEXT_PREBATTLE_TITLE] = "Pre-battle Intel",
+    [TEXT_PREBATTLE_CRISIS] = "Crisis Level",
+    [TEXT_PREBATTLE_ENEMY] = "Enemy Cat",
+    [TEXT_PREBATTLE_MODIFIERS] = "Modifiers",
+    [TEXT_PREBATTLE_START] = "Start Challenge",
+
+    [TEXT_ERROR_SAVE_FAILED] = "Unable to save progress",
+    [TEXT_ERROR_SAVE_CORRUPT] = "Save data is damaged; recovery attempted",
+    [TEXT_ERROR_AUDIO_MUTED] = "Audio unavailable; muted",
+
+    [TEXT_CREDITS_TITLE] = "Credits",
+    [TEXT_CREDITS_GAME] = "JiMiDoo / PussiFight",
+    [TEXT_CREDITS_THANKS] = "Thanks for playing"
+};

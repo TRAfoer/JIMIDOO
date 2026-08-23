@@ -1,0 +1,19 @@
+{
+  "source_url_template": "https://www.bilibilitoy.com/toy/YmMvNRJDNp6gRKsk/24126970560512-v8847/Image/cat_{cat}_{action}.png",
+  "cats": {
+    "a": "orange",
+    "b": "tabby",
+    "c": "chouju",
+    "d": "maodie",
+    "e": "banana"
+  },
+  "actions": {
+    "1": "yowl",
+    "2": "hiss",
+    "3": "scratch",
+    "4": "hit",
+    "5": "heal",
+    "6": "dead",
+    "7": "idle"
+  }
+}

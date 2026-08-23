@@ -13,6 +13,7 @@ host-test: $(TESTS)
 	./test_config.exe
 	./test_localization.exe
 	& "$(PYTHON)" test_font_assets.py
+	& "$(PYTHON)" test_asset_manifest.py
 
 test_localization: test_localization.exe
 	./test_localization.exe

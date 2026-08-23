@@ -7,6 +7,7 @@ export BLOCKSDSEXT		?= /opt/blocksds/external
 
 export WONDERFUL_TOOLCHAIN	?= /opt/wonderful
 ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
+PYTHON		?= python3
 
 # User config
 # ===========
@@ -180,12 +181,26 @@ DEPS		:= $(OBJS:.o=.d)
 # Targets
 # -------
 
-.PHONY: all assets clean dump dldipatch host-test sdimage
+.PHONY: all assets clean dump dldipatch font-runtime-assets host-test sdimage
 
 all: $(ROM)
 
-assets:
-	@echo "Assets are supplied by later build stages."
+FONT_RUNTIME_IMAGE	:= nitrofs/fonts/jimidou_font.a5i3.bin
+FONT_RUNTIME_PALETTE	:= nitrofs/fonts/jimidou_font.pal.bin
+FONT_RUNTIME_ASSETS	:= $(FONT_RUNTIME_IMAGE) $(FONT_RUNTIME_PALETTE)
+
+assets: font-runtime-assets
+
+font-runtime-assets: $(FONT_RUNTIME_ASSETS)
+
+$(ROM): $(FONT_RUNTIME_ASSETS)
+
+$(FONT_RUNTIME_ASSETS) &: assets/fonts/jimidou_font_atlas.png tools/convert_font_atlas.py
+	@echo "  FONT    $^"
+	$(V)$(PYTHON) tools/convert_font_atlas.py \
+		--input-atlas assets/fonts/jimidou_font_atlas.png \
+		--output-image $(FONT_RUNTIME_IMAGE) \
+		--output-palette $(FONT_RUNTIME_PALETTE)
 
 host-test:
 	$(MAKE) -C tests/host
@@ -203,7 +218,9 @@ $(ROM): $(NITROFSDIR)
 endif
 
 # Combine the title strings
-ifeq ($(strip $(GAME_SUBTITLE)),)
+ifeq ($(strip $(GAME_TITLE)$(GAME_SUBTITLE)$(GAME_AUTHOR)),)
+    GAME_FULL_TITLE :=
+else ifeq ($(strip $(GAME_SUBTITLE)),)
     GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_AUTHOR)
 else
     GAME_FULL_TITLE := $(GAME_TITLE);$(GAME_SUBTITLE);$(GAME_AUTHOR)

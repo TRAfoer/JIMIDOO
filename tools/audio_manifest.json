@@ -1,0 +1,31 @@
+{
+  "sfx": [
+    { "id": "start", "source": "开始游戏音效.mp3", "output": "start.wav" },
+    { "id": "yowl", "source": "老吴叫.mp3", "output": "yowl.wav" },
+    { "id": "scratch_1", "source": "抓挠.mp3", "output": "scratch_1.wav" },
+    { "id": "scratch_2", "source": "抓挠2.mp3", "output": "scratch_2.wav" },
+    { "id": "heal", "source": "一般回血.mp3", "output": "heal.wav" },
+    { "id": "death", "source": "一般死亡.mp3", "output": "death.wav" },
+    { "id": "maodie_combined", "source": "耄耋哈气+抓挠.mp3", "output": "maodie_combined.wav" },
+    { "id": "banana_attack", "source": "香蕉猫攻击.mp3", "output": "banana_attack.wav" },
+    { "id": "banana_heal", "source": "香蕉猫回血.mp3", "output": "banana_heal.wav" },
+    { "id": "banana_death", "source": "香蕉猫死亡.mp3", "output": "banana_death.wav" }
+  ],
+  "logical_sfx": {
+    "start": "start",
+    "yowl": "yowl",
+    "normal_hiss": "yowl",
+    "scratch_1": "scratch_1",
+    "scratch_2": "scratch_2",
+    "heal": "heal",
+    "death": "death",
+    "maodie_combined": "maodie_combined",
+    "banana_attack": "banana_attack",
+    "banana_heal": "banana_heal",
+    "banana_death": "banana_death"
+  },
+  "music": [
+    { "id": "menu", "source": "菜单音乐.mp3", "output": "menu.wav" },
+    { "id": "battle", "source": "战斗背景音乐.mp3", "output": "battle.wav" }
+  ]
+}

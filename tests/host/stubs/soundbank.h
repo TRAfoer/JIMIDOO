@@ -1,0 +1,15 @@
+#ifndef TEST_SOUNDBANK_H
+#define TEST_SOUNDBANK_H
+
+#define SFX_BANANA_ATTACK 101
+#define SFX_BANANA_DEATH 102
+#define SFX_BANANA_HEAL 103
+#define SFX_DEATH 104
+#define SFX_HEAL 105
+#define SFX_MAODIE_COMBINED 106
+#define SFX_SCRATCH_1 107
+#define SFX_SCRATCH_2 108
+#define SFX_START 109
+#define SFX_YOWL 110
+
+#endif

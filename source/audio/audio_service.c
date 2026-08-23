@@ -1,6 +1,6 @@
 #include "audio_service.h"
 
-#include <stdlib.h>
+#include <stdint.h>
 
 #include <filesystem.h>
 #include <maxmod9.h>
@@ -23,12 +23,16 @@ typedef enum FadeMode {
 } FadeMode;
 
 static bool audio_ready;
+static bool maxmod_initialized;
+static bool audio_session_active;
+static unsigned int loaded_effects;
 static MusicId current_music = MUSIC_NONE;
 static MusicId target_music = MUSIC_NONE;
 static FadeMode fade_mode = FADE_NONE;
 static unsigned int fade_frame;
 static unsigned int fade_start_volume;
 static unsigned int music_volume;
+static uint32_t audio_random_state = UINT32_C(0x4A694D69);
 
 static const unsigned int physical_samples[] = {
     SFX_START,
@@ -68,21 +72,24 @@ bool audioInit(void)
     if (audio_ready) {
         return true;
     }
-    if (!nitroFSInit(NULL)) {
-        return false;
+    if (!maxmod_initialized) {
+        if (!nitroFSInit(NULL)) {
+            return false;
+        }
+        if (!mmInitDefault("nitro:/soundbank.bin")) {
+            return false;
+        }
+        maxmod_initialized = true;
     }
-    if (!mmInitDefault("nitro:/soundbank.bin")) {
-        return false;
-    }
+    audio_session_active = true;
 
-    unsigned int loaded = 0;
     const unsigned int sample_count =
         (unsigned int)(sizeof(physical_samples) / sizeof(physical_samples[0]));
-    for (; loaded < sample_count; ++loaded) {
-        if (mmLoadEffect(physical_samples[loaded]) != 0) {
-            while (loaded > 0) {
-                --loaded;
-                mmUnloadEffect(physical_samples[loaded]);
+    for (; loaded_effects < sample_count; ++loaded_effects) {
+        if (mmLoadEffect(physical_samples[loaded_effects]) != 0) {
+            while (loaded_effects > 0) {
+                --loaded_effects;
+                mmUnloadEffect(physical_samples[loaded_effects]);
             }
             return false;
         }
@@ -109,6 +116,9 @@ void audioPlaySfx(SfxId id)
 
 void audioPlayScratch(CatId cat)
 {
+    if (!audio_ready) {
+        return;
+    }
     if (cat == CAT_MAODIE) {
         audioPlaySfx(SFX_ID_MAODIE_COMBINED);
     }
@@ -116,7 +126,10 @@ void audioPlayScratch(CatId cat)
         audioPlaySfx(SFX_ID_BANANA_ATTACK);
     }
     else {
-        audioPlaySfx((rand() & 1) ? SFX_ID_SCRATCH_1 : SFX_ID_SCRATCH_2);
+        audio_random_state = audio_random_state * UINT32_C(1664525) +
+            UINT32_C(1013904223);
+        audioPlaySfx((audio_random_state >> 31) != 0 ?
+            SFX_ID_SCRATCH_1 : SFX_ID_SCRATCH_2);
     }
 }
 
@@ -209,7 +222,7 @@ void audioUpdate(void)
 
 void audioShutdown(void)
 {
-    if (!audio_ready) {
+    if (!audio_session_active) {
         return;
     }
 
@@ -217,10 +230,9 @@ void audioShutdown(void)
         musicStreamClose();
     }
     mmEffectCancelAll();
-    const unsigned int sample_count =
-        (unsigned int)(sizeof(physical_samples) / sizeof(physical_samples[0]));
-    for (unsigned int i = 0; i < sample_count; ++i) {
-        mmUnloadEffect(physical_samples[i]);
+    while (loaded_effects > 0) {
+        --loaded_effects;
+        mmUnloadEffect(physical_samples[loaded_effects]);
     }
     soundDisable();
 
@@ -231,4 +243,5 @@ void audioShutdown(void)
     fade_frame = 0;
     fade_start_volume = 0;
     music_volume = 0;
+    audio_session_active = false;
 }

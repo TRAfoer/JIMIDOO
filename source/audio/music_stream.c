@@ -75,11 +75,21 @@ static bool readWaveHeader(void)
             format_found = true;
         }
         else if (memcmp(chunk, "data", 4) == 0) {
-            if (!format_found || chunk_size == 0) {
+            if (!format_found || chunk_size == 0 || (chunk_size & 1U) != 0) {
                 return false;
             }
             music_data_offset = ftell(music_file);
             if (music_data_offset < 0) {
+                return false;
+            }
+            if (fseek(music_file, 0, SEEK_END) != 0) {
+                return false;
+            }
+            long file_end = ftell(music_file);
+            if (file_end < music_data_offset ||
+                (uint64_t)chunk_size >
+                    (uint64_t)(file_end - music_data_offset) ||
+                fseek(music_file, music_data_offset, SEEK_SET) != 0) {
                 return false;
             }
             music_data_size = chunk_size;

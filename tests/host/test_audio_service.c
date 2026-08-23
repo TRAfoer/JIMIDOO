@@ -16,6 +16,17 @@ static int stream_closes;
 static int last_music = MUSIC_NONE;
 static unsigned int stream_volume;
 static int sound_enable_calls;
+static int gameplay_random_calls;
+static int maxmod_init_calls;
+static int unload_calls;
+static int cancel_calls;
+static int sound_disable_calls;
+
+int testRand(void)
+{
+    ++gameplay_random_calls;
+    return 1;
+}
 
 bool nitroFSInit(const char *path)
 {
@@ -26,6 +37,7 @@ bool nitroFSInit(const char *path)
 bool mmInitDefault(const char *path)
 {
     (void)path;
+    ++maxmod_init_calls;
     return maxmod_ok;
 }
 
@@ -37,6 +49,7 @@ unsigned int mmLoadEffect(unsigned int sample_id)
 unsigned int mmUnloadEffect(unsigned int sample_id)
 {
     (void)sample_id;
+    ++unload_calls;
     return 0;
 }
 
@@ -47,8 +60,8 @@ unsigned int mmEffect(unsigned int sample_id)
     return 1;
 }
 
-void mmEffectCancelAll(void) { }
-void soundDisable(void) { }
+void mmEffectCancelAll(void) { ++cancel_calls; }
+void soundDisable(void) { ++sound_disable_calls; }
 void soundEnable(void) { ++sound_enable_calls; }
 
 void musicStreamUpdate(void)
@@ -86,21 +99,32 @@ int main(void)
     audioShutdown();
     assert(effect_calls == 0);
     assert(stream_updates == 0);
+    assert(gameplay_random_calls == 0);
 
     nitro_ok = true;
     maxmod_ok = false;
     assert(!audioInit());
     audioPlaySfx(SFX_ID_START);
     assert(effect_calls == 0);
+    assert(maxmod_init_calls == 1);
 
     maxmod_ok = true;
     load_failure = SFX_SCRATCH_2;
     assert(!audioInit());
     audioPlaySfx(SFX_ID_START);
     assert(effect_calls == 0);
+    assert(maxmod_init_calls == 2);
+    assert(unload_calls == 3);
+    audioShutdown();
+    assert(cancel_calls == 1);
+    assert(sound_disable_calls == 1);
+    audioShutdown();
+    assert(cancel_calls == 1);
+    assert(sound_disable_calls == 1);
 
     load_failure = -1;
     assert(audioInit());
+    assert(maxmod_init_calls == 2);
     assert(sound_enable_calls == 1);
 
     audioPlaySfx(SFX_ID_NORMAL_HISS);
@@ -113,6 +137,7 @@ int main(void)
     audioPlayScratch(CAT_TABBY);
     assert(last_effect == SFX_SCRATCH_1 || last_effect == SFX_SCRATCH_2);
     last_effect = -1;
+    assert(gameplay_random_calls == 0);
 
     audioPlayHiss(CAT_MAODIE);
     expect_effect(SFX_MAODIE_COMBINED);
@@ -160,7 +185,17 @@ int main(void)
     assert(stream_volume == 127);
 
     audioShutdown();
+    assert(unload_calls == 13);
+    assert(cancel_calls == 2);
+    assert(sound_disable_calls == 2);
     audioPlaySfx(SFX_ID_START);
     assert(last_effect == -1);
+
+    assert(audioInit());
+    assert(maxmod_init_calls == 2);
+    assert(sound_enable_calls == 2);
+    audioShutdown();
+    assert(unload_calls == 23);
+    assert(sound_disable_calls == 3);
     return 0;
 }

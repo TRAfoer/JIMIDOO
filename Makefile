@@ -8,6 +8,7 @@ export BLOCKSDSEXT		?= /opt/blocksds/external
 export WONDERFUL_TOOLCHAIN	?= /opt/wonderful
 ARM_NONE_EABI_PATH	?= $(WONDERFUL_TOOLCHAIN)/toolchain/gcc-arm-none-eabi/bin/
 PYTHON		?= python3
+FONT_FILE	?=
 
 # User config
 # ===========
@@ -40,6 +41,18 @@ BINDIRS		:=
 AUDIODIRS	:= assets/audio/sfx
 # List of folders to combine into the root of NitroFS:
 NITROFSDIR	:= nitrofs
+
+FONT_CATALOGS	:= source/localization/strings_zh_cn.c \
+		   source/localization/strings_en.c
+FONT_GLYPHS	:= assets/fonts/required_glyphs.txt
+FONT_SUBSET	:= assets/fonts/jimidou_subset.ttf
+FONT_ATLAS	:= assets/fonts/jimidou_font_atlas.png
+FONT_METRICS	:= include/generated/jimidou_font_metrics.h
+FONT_GENERATED_ASSETS	:= $(FONT_SUBSET) $(FONT_ATLAS) $(FONT_METRICS)
+FONT_RUNTIME_IMAGE	:= nitrofs/fonts/jimidou_font.a5i3.bin
+FONT_RUNTIME_PALETTE	:= nitrofs/fonts/jimidou_font.pal.bin
+FONT_RUNTIME_ASSETS	:= $(FONT_RUNTIME_IMAGE) $(FONT_RUNTIME_PALETTE)
+FONT_FILE_ARGUMENT	= $(if $(strip $(FONT_FILE)),--font "$(FONT_FILE)",)
 
 # Defines passed to all files
 # ---------------------------
@@ -174,6 +187,8 @@ OBJS_SOURCES	:= $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_S))) \
 		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_C))) \
 		   $(addsuffix .o,$(addprefix $(BUILDDIR)/,$(SOURCES_CPP)))
 
+$(OBJS_SOURCES): $(FONT_METRICS)
+
 OBJS		:= $(OBJS_ASSETS) $(OBJS_SOURCES)
 
 DEPS		:= $(OBJS:.o=.d)
@@ -185,20 +200,28 @@ DEPS		:= $(OBJS:.o=.d)
 
 all: $(ROM)
 
-FONT_RUNTIME_IMAGE	:= nitrofs/fonts/jimidou_font.a5i3.bin
-FONT_RUNTIME_PALETTE	:= nitrofs/fonts/jimidou_font.pal.bin
-FONT_RUNTIME_ASSETS	:= $(FONT_RUNTIME_IMAGE) $(FONT_RUNTIME_PALETTE)
-
 assets: font-runtime-assets
 
 font-runtime-assets: $(FONT_RUNTIME_ASSETS)
 
 $(ROM): $(FONT_RUNTIME_ASSETS)
 
-$(FONT_RUNTIME_ASSETS) &: assets/fonts/jimidou_font_atlas.png tools/convert_font_atlas.py
+$(FONT_GLYPHS): $(FONT_CATALOGS) tools/extract_glyphs.py
+	@echo "  GLYPHS  $^"
+	$(V)$(PYTHON) tools/extract_glyphs.py --output $(FONT_GLYPHS)
+
+$(FONT_GENERATED_ASSETS) &: $(FONT_GLYPHS) tools/build_font.py
 	@echo "  FONT    $^"
+	$(V)$(PYTHON) tools/build_font.py $(FONT_FILE_ARGUMENT) \
+		--glyphs $(FONT_GLYPHS) \
+		--output-font $(FONT_SUBSET) \
+		--output-atlas $(FONT_ATLAS) \
+		--output-metrics $(FONT_METRICS)
+
+$(FONT_RUNTIME_ASSETS) &: $(FONT_ATLAS) $(FONT_METRICS) tools/convert_font_atlas.py
+	@echo "  FONT.NDS $^"
 	$(V)$(PYTHON) tools/convert_font_atlas.py \
-		--input-atlas assets/fonts/jimidou_font_atlas.png \
+		--input-atlas $(FONT_ATLAS) \
 		--output-image $(FONT_RUNTIME_IMAGE) \
 		--output-palette $(FONT_RUNTIME_PALETTE)
 

@@ -3,7 +3,7 @@ SHELL := powershell.exe
 VCVARS := C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
 PYTHON ?= C:/Users/lhf19/AppData/Local/Programs/Python/Python312/python.exe
 
-TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_font_layout.exe
+TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_font_layout.exe test_scene_init.exe
 
 .PHONY: all clean host-test test_localization
 
@@ -16,6 +16,7 @@ host-test: $(TESTS)
 	./test_music_stream.exe
 	./test_texture_ids.exe
 	./test_font_layout.exe
+	./test_scene_init.exe
 	& "$(PYTHON)" test_font_assets.py
 	& "$(PYTHON)" test_font_runtime_assets.py
 	& "$(PYTHON)" test_asset_manifest.py
@@ -42,6 +43,9 @@ test_texture_ids.exe: test_texture_ids.c ../../include/graphics_service.h ../../
 
 test_font_layout.exe: test_font_layout.c ../../include/font_layout.h ../../include/generated/jimidou_font_metrics.h ../../include/localization.h ../../source/graphics/font_layout.c ../../source/localization/localization.c ../../source/localization/strings_zh_cn.c ../../source/localization/strings_en.c
 	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c 'call "$(VCVARS)" >nul && cl.exe /nologo /std:c11 /utf-8 /W4 /WX /I../../include test_font_layout.c ../../source/graphics/font_layout.c ../../source/localization/localization.c ../../source/localization/strings_zh_cn.c ../../source/localization/strings_en.c /Fe:$@'
+
+test_scene_init.exe: test_scene_init.c ../../include/ui_scene.h
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c 'call "$(VCVARS)" >nul && cl.exe /nologo /std:c11 /W4 /WX /I../../include test_scene_init.c ../../source/ui/scene_status.c /Fe:$@'
 
 clean:
 	Remove-Item -Force -ErrorAction SilentlyContinue $(TESTS)

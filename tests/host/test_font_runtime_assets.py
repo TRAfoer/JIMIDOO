@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -13,6 +14,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_FONT = Path(r"C:\Windows\Fonts\simhei.ttf")
 ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
 METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 RUNTIME_IMAGE = ROOT / "nitrofs" / "fonts" / "jimidou_font.a5i3.bin"
@@ -24,7 +26,39 @@ METRIC = re.compile(
 
 
 class FontRuntimeArtifactTest(unittest.TestCase):
-    def convert(self, output: Path) -> tuple[Path, Path]:
+    def build_catalog_font(self, output: Path) -> tuple[Path, Path]:
+        glyphs = output / "required_glyphs.txt"
+        subset = output / "jimidou_subset.ttf"
+        atlas = output / "jimidou_font_atlas.png"
+        metrics = output / "jimidou_font_metrics.h"
+        environment = os.environ.copy()
+        environment.setdefault("FONT_FILE", str(DEFAULT_FONT))
+        subprocess.run(
+            [sys.executable, "tools/extract_glyphs.py", "--output", str(glyphs)],
+            cwd=ROOT,
+            env=environment,
+            check=True,
+        )
+        subprocess.run(
+            [
+                sys.executable,
+                "tools/build_font.py",
+                "--glyphs",
+                str(glyphs),
+                "--output-font",
+                str(subset),
+                "--output-atlas",
+                str(atlas),
+                "--output-metrics",
+                str(metrics),
+            ],
+            cwd=ROOT,
+            env=environment,
+            check=True,
+        )
+        return atlas, metrics
+
+    def convert(self, output: Path, atlas: Path) -> tuple[Path, Path]:
         image = output / "jimidou_font.a5i3.bin"
         palette = output / "jimidou_font.pal.bin"
         subprocess.run(
@@ -32,7 +66,7 @@ class FontRuntimeArtifactTest(unittest.TestCase):
                 sys.executable,
                 "tools/convert_font_atlas.py",
                 "--input-atlas",
-                str(ATLAS),
+                str(atlas),
                 "--output-image",
                 str(image),
                 "--output-palette",
@@ -49,8 +83,11 @@ class FontRuntimeArtifactTest(unittest.TestCase):
             second = Path(temporary) / "second"
             first.mkdir()
             second.mkdir()
-            first_image, first_palette = self.convert(first)
-            second_image, second_palette = self.convert(second)
+            generated = Path(temporary) / "generated"
+            generated.mkdir()
+            fresh_atlas, fresh_metrics = self.build_catalog_font(generated)
+            first_image, first_palette = self.convert(first, fresh_atlas)
+            second_image, second_palette = self.convert(second, fresh_atlas)
 
             image_data = first_image.read_bytes()
             palette_data = first_palette.read_bytes()
@@ -58,8 +95,10 @@ class FontRuntimeArtifactTest(unittest.TestCase):
             self.assertEqual(palette_data, second_palette.read_bytes())
             self.assertEqual(image_data, RUNTIME_IMAGE.read_bytes())
             self.assertEqual(palette_data, RUNTIME_PALETTE.read_bytes())
+            self.assertEqual(fresh_atlas.read_bytes(), ATLAS.read_bytes())
+            self.assertEqual(fresh_metrics.read_bytes(), METRICS.read_bytes())
 
-            with Image.open(ATLAS) as atlas:
+            with Image.open(fresh_atlas) as atlas:
                 width, height = atlas.size
                 texture_height = 1 << (height - 1).bit_length()
                 self.assertEqual(len(image_data), width * texture_height)
@@ -82,7 +121,7 @@ class FontRuntimeArtifactTest(unittest.TestCase):
 
             metrics = [
                 (int(values[0], 16), *(int(value) for value in values[1:]))
-                for values in METRIC.findall(METRICS.read_text(encoding="utf-8"))
+                for values in METRIC.findall(fresh_metrics.read_text(encoding="utf-8"))
             ]
             self.assertTrue(metrics)
             for codepoint, x, y, glyph_width, glyph_height, _, _, _ in metrics:

@@ -10,22 +10,34 @@
 
 static Language title_language;
 static bool title_audio_muted;
+static bool title_initialized;
 
 static int centeredTextX(const char *text, unsigned int scale)
 {
     return (SCREEN_WIDTH - fontTextWidth(text, scale)) / 2;
 }
 
-void titleSceneInit(bool audio_available)
+TitleSceneInitStatus titleSceneInit(bool audio_available)
 {
+    title_initialized = false;
     title_language = LANG_ZH_CN;
     title_audio_muted = !audio_available;
     textSetLanguage(title_language);
-    catTextureLoad(CAT_ORANGE, CAT_ACTION_IDLE);
+    TitleSceneInitStatus status = titleSceneStatusForCatLoad(
+        catTextureLoad(CAT_ORANGE, CAT_ACTION_IDLE));
+    if (!titleSceneCanRun(status)) {
+        return status;
+    }
+
+    title_initialized = true;
+    return TITLE_SCENE_INIT_READY;
 }
 
 void titleSceneUpdate(uint32_t keys_down)
 {
+    if (!title_initialized) {
+        return;
+    }
     if ((keys_down & KEY_SELECT) != 0) {
         title_language = title_language == LANG_ZH_CN ? LANG_EN : LANG_ZH_CN;
         textSetLanguage(title_language);
@@ -34,6 +46,9 @@ void titleSceneUpdate(uint32_t keys_down)
 
 void titleSceneDraw(void)
 {
+    if (!title_initialized) {
+        return;
+    }
     const char *title = textGet(TEXT_GAME_TITLE);
     const char *toggle = textGet(TEXT_TITLE_LANGUAGE_TOGGLE);
     const char *muted = textGet(TEXT_ERROR_AUDIO_MUTED);

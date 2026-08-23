@@ -16,13 +16,17 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_FONT = Path(r"C:\Windows\Fonts\simhei.ttf")
+COMMITTED_GLYPHS = ROOT / "assets" / "fonts" / "required_glyphs.txt"
+COMMITTED_SUBSET = ROOT / "assets" / "fonts" / "jimidou_subset.ttf"
+COMMITTED_ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
+COMMITTED_METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 METRIC = re.compile(
     r"\{ 0x([0-9A-F]{4,6}), (-?\d+), (-?\d+), (-?\d+), (-?\d+), (-?\d+), (-?\d+), (-?\d+) \},"
 )
 
 
 class FontArtifactTest(unittest.TestCase):
-    def build(self, output: Path) -> tuple[Path, Path, Path]:
+    def build(self, output: Path) -> tuple[Path, Path, Path, Path]:
         glyphs = output / "required_glyphs.txt"
         subset = output / "jimidou_subset.ttf"
         atlas = output / "jimidou_font_atlas.png"
@@ -52,7 +56,7 @@ class FontArtifactTest(unittest.TestCase):
             env=environment,
             check=True,
         )
-        return subset, atlas, metrics
+        return glyphs, subset, atlas, metrics
 
     def test_subset_maps_every_required_glyph_deterministically(self) -> None:
         """A missing cmap entry or non-repeatable asset must fail this test."""
@@ -61,12 +65,17 @@ class FontArtifactTest(unittest.TestCase):
             second_dir = Path(temporary) / "second"
             first_dir.mkdir()
             second_dir.mkdir()
-            first_font, first_atlas, first_metrics = self.build(first_dir)
-            second_font, second_atlas, second_metrics = self.build(second_dir)
+            first_glyphs, first_font, first_atlas, first_metrics = self.build(first_dir)
+            second_glyphs, second_font, second_atlas, second_metrics = self.build(second_dir)
 
+            self.assertEqual(first_glyphs.read_bytes(), second_glyphs.read_bytes())
             self.assertEqual(first_font.read_bytes(), second_font.read_bytes())
             self.assertEqual(first_atlas.read_bytes(), second_atlas.read_bytes())
             self.assertEqual(first_metrics.read_bytes(), second_metrics.read_bytes())
+            self.assertEqual(first_glyphs.read_bytes(), COMMITTED_GLYPHS.read_bytes())
+            self.assertEqual(first_font.read_bytes(), COMMITTED_SUBSET.read_bytes())
+            self.assertEqual(first_atlas.read_bytes(), COMMITTED_ATLAS.read_bytes())
+            self.assertEqual(first_metrics.read_bytes(), COMMITTED_METRICS.read_bytes())
 
             required = (first_dir / "required_glyphs.txt").read_text(encoding="utf-8").rstrip("\n")
             cmap = TTFont(first_font).getBestCmap()

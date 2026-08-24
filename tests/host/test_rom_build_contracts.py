@@ -43,24 +43,61 @@ class RomBuildContractTest(unittest.TestCase):
             "BUILDDIR": build_dir,
             "SOUNDBANKINFODIR": info_dir,
             "SOUNDBANKDIR": soundbank_dir,
+            "FONT_CATALOGS": [
+                temporary / "strings_zh_cn.c",
+                temporary / "strings_en.c",
+            ],
+            "FONT_GLYPHS": temporary / "required_glyphs.txt",
+            "FONT_SUBSET": temporary / "jimidou_subset.ttf",
+            "FONT_ATLAS": temporary / "jimidou_font_atlas.png",
+            "FONT_METRICS": temporary / "jimidou_font_metrics.h",
+            "FONT_RUNTIME_IMAGE": temporary / "jimidou_font.a5i3.bin",
+            "FONT_RUNTIME_PALETTE": temporary / "jimidou_font.pal.bin",
+            "NITROFS_CAT_PAYLOADS": temporary / "orange_idle.img.bin",
+            "NITROFS_BGM_PAYLOADS": temporary / "menu.wav",
+            "SOURCES_AUDIO": temporary / "start.wav",
         }
         controlled["ROM"].write_bytes(b"rom")
         controlled["ELF"].write_bytes(b"elf")
         (info_dir / "soundbank.h").write_bytes(b"header")
         (soundbank_dir / "soundbank.bin").write_bytes(b"bank")
+        for name, paths in controlled.items():
+            if name in {"ROM", "ELF", "BUILDDIR", "SOUNDBANKINFODIR", "SOUNDBANKDIR"}:
+                continue
+            for path in paths if isinstance(paths, list) else [paths]:
+                path.write_bytes(b"asset")
 
-        future = time.time() + 3600
-        for path in (
-            controlled["ROM"],
-            controlled["ELF"],
-            info_dir / "soundbank.h",
-            soundbank_dir / "soundbank.bin",
-        ):
-            os.utime(path, (future, future))
+        future = time.time() + 86400
+        timestamp_groups = (
+            controlled["FONT_CATALOGS"],
+            [controlled["FONT_GLYPHS"]],
+            [
+                controlled["FONT_SUBSET"],
+                controlled["FONT_ATLAS"],
+                controlled["FONT_METRICS"],
+            ],
+            [
+                controlled["FONT_RUNTIME_IMAGE"],
+                controlled["FONT_RUNTIME_PALETTE"],
+                controlled["NITROFS_CAT_PAYLOADS"],
+                controlled["NITROFS_BGM_PAYLOADS"],
+                controlled["SOURCES_AUDIO"],
+                info_dir / "soundbank.h",
+                soundbank_dir / "soundbank.bin",
+                controlled["ELF"],
+            ],
+            [controlled["ROM"]],
+        )
+        for index, paths in enumerate(timestamp_groups):
+            timestamp = future + index
+            for path in paths:
+                os.utime(path, (timestamp, timestamp))
 
         return {
-            name: path.relative_to(ROOT).as_posix()
-            for name, path in controlled.items()
+            name: " ".join(path.relative_to(ROOT).as_posix() for path in paths)
+            if isinstance(paths, list)
+            else paths.relative_to(ROOT).as_posix()
+            for name, paths in controlled.items()
         }
 
     def test_payload_changes_schedule_their_assets_and_rom(self) -> None:
@@ -71,9 +108,9 @@ class RomBuildContractTest(unittest.TestCase):
             common = [f"{name}={value}" for name, value in variables.items()]
             common.append(f"--old-file={variables['ELF']}")
             cases = (
-                ("nitrofs/cats/orange_idle.img.bin", False),
-                ("nitrofs/audio/menu.wav", False),
-                ("nitrofs/fonts/jimidou_font.a5i3.bin", False),
+                (variables["NITROFS_CAT_PAYLOADS"], False),
+                (variables["NITROFS_BGM_PAYLOADS"], False),
+                (variables["FONT_RUNTIME_IMAGE"], False),
             )
             for changed, expects_soundbank in cases:
                 with self.subTest(changed=changed):
@@ -85,6 +122,43 @@ class RomBuildContractTest(unittest.TestCase):
                     )
                     self.assertIn("NDSTOOL", result.stdout)
                     self.assertEqual("MMUTIL" in result.stdout, expects_soundbank)
+                    self.assertNotIn("GLYPHS", result.stdout)
+                    self.assertNotIn("FONT    ", result.stdout)
+                    self.assertNotIn("FONT.NDS", result.stdout)
+
+    def test_direct_payload_ignores_a_stale_live_font_catalog(self) -> None:
+        """A cat payload must not traverse the live font dependency chain."""
+        (ROOT / "build").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=ROOT / "build") as directory:
+            variables = self.make_sandbox(Path(directory))
+            cat_payload_path = variables["NITROFS_CAT_PAYLOADS"]
+            common = [f"{name}={value}" for name, value in variables.items()]
+            common.append(f"--old-file={variables['ELF']}")
+
+            leaked_common = [
+                argument for argument in common if not argument.startswith("FONT_")
+            ]
+            leaked_result = self.run_make(
+                "--dry-run",
+                "--what-if=source/localization/strings_zh_cn.c",
+                f"--what-if={cat_payload_path}",
+                *leaked_common,
+                variables["ROM"],
+            )
+            self.assertIn("GLYPHS", leaked_result.stdout)
+
+            result = self.run_make(
+                "--dry-run",
+                "--what-if=source/localization/strings_zh_cn.c",
+                f"--what-if={cat_payload_path}",
+                *common,
+                variables["ROM"],
+            )
+
+            self.assertIn("NDSTOOL", result.stdout)
+            self.assertNotIn("GLYPHS", result.stdout)
+            self.assertNotIn("FONT    ", result.stdout)
+            self.assertNotIn("FONT.NDS", result.stdout)
 
     def test_sfx_change_regenerates_soundbank_and_rom(self) -> None:
         """An SFX update must flow through mmutil into a newly packed ROM."""
@@ -101,7 +175,7 @@ class RomBuildContractTest(unittest.TestCase):
             mmutil_log = temporary / "mmutil.log"
             ndstool_log = temporary / "ndstool.log"
             future_marker.write_bytes(b"future")
-            future = time.time() + 7200
+            future = time.time() + 172800
             os.utime(future_marker, (future, future))
 
             marker_path = future_marker.relative_to(ROOT).as_posix()
@@ -143,8 +217,8 @@ class RomBuildContractTest(unittest.TestCase):
             fake_ndstool.chmod(0o755)
 
             common = [f"{name}={value}" for name, value in variables.items()]
-            self.run_make(
-                "--what-if=assets/audio/sfx/start.wav",
+            result = self.run_make(
+                f"--what-if={variables['SOURCES_AUDIO']}",
                 f"BLOCKSDS={fake_blocksds.relative_to(ROOT).as_posix()}",
                 f"--old-file={variables['ELF']}",
                 *common,
@@ -152,6 +226,11 @@ class RomBuildContractTest(unittest.TestCase):
             )
             self.assertEqual(mmutil_log.read_text(encoding="utf-8"), "run\n")
             self.assertEqual(ndstool_log.read_text(encoding="utf-8"), "run\n")
+            self.assertIn("MMUTIL", result.stdout)
+            self.assertIn("NDSTOOL", result.stdout)
+            self.assertNotIn("GLYPHS", result.stdout)
+            self.assertNotIn("FONT    ", result.stdout)
+            self.assertNotIn("FONT.NDS", result.stdout)
 
     def test_catalog_change_regenerates_font_payload_and_rom(self) -> None:
         """A catalog update must flow through glyph, font, and ROM generation."""
@@ -161,21 +240,17 @@ class RomBuildContractTest(unittest.TestCase):
             variables = self.make_sandbox(temporary)
             font_paths = {
                 "FONT_CATALOGS": [
-                    temporary / "strings_zh_cn.c",
-                    temporary / "strings_en.c",
+                    ROOT / path for path in variables["FONT_CATALOGS"].split()
                 ],
-                "FONT_GLYPHS": [temporary / "required_glyphs.txt"],
-                "FONT_SUBSET": [temporary / "jimidou_subset.ttf"],
-                "FONT_ATLAS": [temporary / "jimidou_font_atlas.png"],
-                "FONT_METRICS": [temporary / "jimidou_font_metrics.h"],
-                "FONT_RUNTIME_IMAGE": [temporary / "jimidou_font.a5i3.bin"],
-                "FONT_RUNTIME_PALETTE": [temporary / "jimidou_font.pal.bin"],
+                "FONT_GLYPHS": [ROOT / variables["FONT_GLYPHS"]],
+                "FONT_SUBSET": [ROOT / variables["FONT_SUBSET"]],
+                "FONT_ATLAS": [ROOT / variables["FONT_ATLAS"]],
+                "FONT_METRICS": [ROOT / variables["FONT_METRICS"]],
+                "FONT_RUNTIME_IMAGE": [ROOT / variables["FONT_RUNTIME_IMAGE"]],
+                "FONT_RUNTIME_PALETTE": [ROOT / variables["FONT_RUNTIME_PALETTE"]],
             }
-            for paths in font_paths.values():
-                for path in paths:
-                    path.write_bytes(b"asset")
 
-            base_time = time.time() + 3600
+            base_time = time.time() + 172800
             ordered = (
                 [Path(variables["ELF"]),
                  Path(variables["SOUNDBANKDIR"]) / "soundbank.bin"]
@@ -194,9 +269,6 @@ class RomBuildContractTest(unittest.TestCase):
                 os.utime(absolute, (timestamp, timestamp))
 
             common = [f"{name}={value}" for name, value in variables.items()]
-            for name, paths in font_paths.items():
-                values = " ".join(path.relative_to(ROOT).as_posix() for path in paths)
-                common.append(f"{name}={values}")
             result = self.run_make(
                 "--dry-run",
                 f"--old-file={variables['ELF']}",

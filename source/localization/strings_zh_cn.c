@@ -4,6 +4,9 @@ const char *const text_table_zh_cn[TEXT_COUNT] = {
     [TEXT_INVALID] = "无效文本",
     [TEXT_GAME_TITLE] = "基米斗",
     [TEXT_TITLE_LANGUAGE_TOGGLE] = "SELECT: 中文/English",
+    [TEXT_DEBUG_TITLE] = "战斗调试",
+    [TEXT_DEBUG_BEST_RATE] = "最优选择概率",
+    [TEXT_DEBUG_CONTROLS] = "方向键调整  A开始  B返回",
 
     [TEXT_MENU_START_GAME] = "开始游戏",
     [TEXT_MENU_RULES] = "战斗规则",

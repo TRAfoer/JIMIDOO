@@ -13,6 +13,7 @@ typedef struct AiScores {
 } AiScores;
 
 AiScores aiScoreActions(const BattleState *battle, Side side);
+uint16_t aiBestActionPercent(uint8_t crisis);
 BattleCommand aiChoose(const BattleState *battle, Side side, uint8_t crisis,
                        BattleRandom random, void *random_context);
 

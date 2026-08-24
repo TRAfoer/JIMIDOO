@@ -147,7 +147,7 @@ static uint16_t aiRoll(BattleRandom random, void *random_context,
            (uint16_t)(value % upper_exclusive);
 }
 
-static uint16_t aiBestPercent(uint8_t crisis)
+uint16_t aiBestActionPercent(uint8_t crisis)
 {
     if (crisis <= 24u) {
         return 35u;
@@ -198,7 +198,7 @@ BattleCommand aiChoose(const BattleState *battle, Side side, uint8_t crisis,
     }
 
     if (non_best_count != 0u &&
-        aiRoll(random, random_context, 100u) >= aiBestPercent(crisis)) {
+        aiRoll(random, random_context, 100u) >= aiBestActionPercent(crisis)) {
         return non_best[aiRoll(random, random_context,
                                (uint16_t)non_best_count)];
     }

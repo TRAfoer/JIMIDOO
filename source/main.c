@@ -2,6 +2,7 @@
 
 #include "audio_service.h"
 #include "battle_scene.h"
+#include "debug_scene.h"
 #include "game_config.h"
 #include "graphics_service.h"
 #include "ui_scene.h"
@@ -36,7 +37,7 @@ static FighterSpec fighterSpecForCat(CatId cat)
     return fighter;
 }
 
-static BattleSetup debugBattleSetup(void)
+static BattleSetup debugBattleSetup(uint8_t crisis)
 {
     BattleSetup setup;
 
@@ -44,7 +45,7 @@ static BattleSetup debugBattleSetup(void)
     setup.enemy_cat = CAT_TABBY;
     setup.player = fighterSpecForCat(setup.player_cat);
     setup.enemy = fighterSpecForCat(setup.enemy_cat);
-    setup.crisis = 1u;
+    setup.crisis = crisis;
     setup.seed = UINT32_C(0x4A694D69);
     return setup;
 }
@@ -65,17 +66,34 @@ int main(void)
         audioSetMusic(MUSIC_MENU);
     }
 
+    uint8_t debug_crisis = 1u;
+
     while (1) {
         uint32_t keys_down;
+        uint32_t keys_held;
+        DebugTitleLaunch launch;
 
         swiWaitForVBlank();
         scanKeys();
         keys_down = keysDown();
-        if ((keys_down & KEY_START) != 0u) {
-            BattleSetup setup = debugBattleSetup();
+        keys_held = keysHeld();
+        launch = debugTitleLaunchForKeys(keys_down, keys_held);
+        if (launch != DEBUG_TITLE_LAUNCH_NONE) {
+            bool start_battle = launch == DEBUG_TITLE_LAUNCH_QUICK_BATTLE;
+            uint8_t crisis = 1u;
 
-            audioPlaySfx(SFX_ID_START);
-            (void)battleSceneRun(&setup);
+            if (launch == DEBUG_TITLE_LAUNCH_MENU) {
+                DebugSceneResult debug_result = debugSceneRun(&debug_crisis);
+
+                start_battle = debug_result == DEBUG_SCENE_START;
+                crisis = debug_crisis;
+            }
+            if (start_battle) {
+                BattleSetup setup = debugBattleSetup(crisis);
+
+                audioPlaySfx(SFX_ID_START);
+                (void)battleSceneRun(&setup);
+            }
             title_status = titleSceneInit(audio_available);
             if (!titleSceneCanRun(title_status)) {
                 runSafeLoop(audio_available);

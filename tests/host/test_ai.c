@@ -177,6 +177,17 @@ static void test_rng_bounds_are_normalized_and_empty_legal_sets_are_safe(void)
     assert(scores.score[CMD_HISS] == AI_SCORE_FORBIDDEN);
 }
 
+static void test_crisis_exposes_the_same_best_action_probability_used_by_ai(void)
+{
+    assert(aiBestActionPercent(1u) == 35u);
+    assert(aiBestActionPercent(24u) == 35u);
+    assert(aiBestActionPercent(25u) == 55u);
+    assert(aiBestActionPercent(75u) == 70u);
+    assert(aiBestActionPercent(150u) == 80u);
+    assert(aiBestActionPercent(225u) == 85u);
+    assert(aiBestActionPercent(255u) == 85u);
+}
+
 int main(void)
 {
     test_scores_forbid_full_hp_heal_and_prioritize_interrupts();
@@ -186,5 +197,6 @@ int main(void)
     test_crisis_255_uses_a_reproducible_fifteen_percent_non_best_rate();
     test_crisis_one_can_select_every_legal_action();
     test_rng_bounds_are_normalized_and_empty_legal_sets_are_safe();
+    test_crisis_exposes_the_same_best_action_probability_used_by_ai();
     return 0;
 }

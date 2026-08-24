@@ -4,6 +4,9 @@ const char *const text_table_en[TEXT_COUNT] = {
     [TEXT_INVALID] = "Invalid text",
     [TEXT_GAME_TITLE] = "PussiFight",
     [TEXT_TITLE_LANGUAGE_TOGGLE] = "SELECT: 中文/English",
+    [TEXT_DEBUG_TITLE] = "Battle Debug",
+    [TEXT_DEBUG_BEST_RATE] = "Best-choice rate",
+    [TEXT_DEBUG_CONTROLS] = "D-Pad adjust  A start  B back",
 
     [TEXT_MENU_START_GAME] = "Start Game",
     [TEXT_MENU_RULES] = "Battle Rules",

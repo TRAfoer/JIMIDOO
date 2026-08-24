@@ -160,6 +160,52 @@ static void test_death_emits_ordered_events_and_stops_frame_resolution(void)
     assert(battle.fighter[SIDE_AI].hp == 0);
 }
 
+static void test_tiny_buffer_eventually_delivers_two_scratches_and_battle_end(void)
+{
+    BattleState battle;
+    BattleEvent event;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.fighter[SIDE_AI].hp = 16;
+    battle.fighter[SIDE_PLAYER].hp = 16;
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(battleSubmit(&battle, SIDE_AI, CMD_SCRATCH));
+
+    assert(battleTick(&battle, &event, 1u) == 1u);
+    assert(event.type == EVENT_DAMAGE && event.source == SIDE_PLAYER);
+    assert(battleTick(&battle, &event, 1u) == 1u);
+    assert(event.type == EVENT_DAMAGE && event.source == SIDE_AI);
+    assert(battleTick(&battle, &event, 1u) == 1u);
+    assert(event.type == EVENT_BATTLE_END && event.source == SIDE_AI);
+    assert(battleTick(&battle, &event, 1u) == 0u);
+}
+
+static void test_tiny_buffer_preserves_simultaneous_channel_events_before_next_frame(void)
+{
+    BattleState battle;
+    BattleEvent event;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_YOWL));
+    assert(battleSubmit(&battle, SIDE_AI, CMD_YOWL));
+    tick(&battle, 29u);
+
+    assert(battleTick(&battle, &event, 1u) == 1u);
+    assert(event.type == EVENT_RAGE && event.source == SIDE_PLAYER);
+    assert(battle.fighter[SIDE_PLAYER].rage == 5);
+    assert(battle.fighter[SIDE_AI].rage == 5);
+    assert(battle.fighter[SIDE_PLAYER].channel_frames == 30u);
+    assert(battle.fighter[SIDE_AI].channel_frames == 30u);
+
+    assert(battleTick(&battle, &event, 1u) == 1u);
+    assert(event.type == EVENT_RAGE && event.source == SIDE_AI);
+    assert(battle.fighter[SIDE_PLAYER].channel_frames == 30u);
+    assert(battle.fighter[SIDE_AI].channel_frames == 30u);
+    assert(battleTick(&battle, &event, 1u) == 0u);
+    assert(battle.fighter[SIDE_PLAYER].channel_frames == 31u);
+    assert(battle.fighter[SIDE_AI].channel_frames == 31u);
+}
+
 int main(void)
 {
     test_rng_is_seeded_and_deterministic();
@@ -171,5 +217,7 @@ int main(void)
     test_invalid_commands_do_not_change_the_fighter();
     test_pause_freezes_all_timers_and_channels();
     test_death_emits_ordered_events_and_stops_frame_resolution();
+    test_tiny_buffer_eventually_delivers_two_scratches_and_battle_end();
+    test_tiny_buffer_preserves_simultaneous_channel_events_before_next_frame();
     return 0;
 }

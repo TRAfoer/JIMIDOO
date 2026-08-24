@@ -18,20 +18,19 @@ static void battleStopChannel(FighterState *fighter)
     fighter->channel_frames = 0u;
 }
 
-static void battleQueueEvent(BattleState *battle, BattleEventType type,
-                             Side source, Side target, int amount)
+static bool battleCanQueueEvents(const BattleState *battle, size_t count)
 {
-    BattleEvent *event;
+    return count <= BATTLE_PENDING_EVENT_CAPACITY - battle->pending_event_count;
+}
 
-    if (battle->pending_event_count >= BATTLE_PENDING_EVENT_CAPACITY) {
-        return;
+static void battleQueueEvents(BattleState *battle, const BattleEvent *events,
+                              size_t event_count)
+{
+    size_t index;
+
+    for (index = 0u; index < event_count; ++index) {
+        battle->pending_events[battle->pending_event_count++] = events[index];
     }
-
-    event = &battle->pending_events[battle->pending_event_count++];
-    event->type = type;
-    event->source = source;
-    event->target = target;
-    event->amount = amount;
 }
 
 static size_t battleFlushEvents(BattleState *battle, BattleEvent *events,
@@ -54,21 +53,6 @@ static size_t battleFlushEvents(BattleState *battle, BattleEvent *events,
     }
 
     return count;
-}
-
-static void battleEmit(BattleEvent *events, size_t event_capacity,
-                       size_t *event_count, BattleEventType type, Side source,
-                       Side target, int amount)
-{
-    if (*event_count >= event_capacity) {
-        return;
-    }
-
-    events[*event_count].type = type;
-    events[*event_count].source = source;
-    events[*event_count].target = target;
-    events[*event_count].amount = amount;
-    ++*event_count;
 }
 
 void battleInit(BattleState *battle, const FighterSpec *player,
@@ -98,6 +82,9 @@ bool battleSubmit(BattleState *battle, Side side, BattleCommand command)
     const FighterSpec *spec;
     Side target_side;
     int damage;
+    BattleEvent damage_event;
+    BattleEvent end_event;
+    size_t event_count;
 
     if (battle == 0 || !battleSideIsValid(side) || command < CMD_HISS ||
         command > CMD_HEAL || battle->paused || battle->finished) {
@@ -113,39 +100,51 @@ bool battleSubmit(BattleState *battle, Side side, BattleCommand command)
         return true;
     }
 
-    spec = &battle->spec[side];
-    battleStopChannel(actor);
-    actor->cooldown = spec->action_cd_frames;
-
     if (command == CMD_YOWL) {
+        battleStopChannel(actor);
+        actor->cooldown = battle->spec[side].action_cd_frames;
         actor->channel = CHANNEL_YOWL;
         return true;
     }
     if (command == CMD_HEAL) {
+        battleStopChannel(actor);
+        actor->cooldown = battle->spec[side].action_cd_frames;
         actor->channel = CHANNEL_HEAL;
         return true;
     }
-    if (command != CMD_SCRATCH) {
-        actor->cooldown = 0u;
-        return false;
-    }
 
+    spec = &battle->spec[side];
     target_side = battleOpponent(side);
     target = &battle->fighter[target_side];
-    battleStopChannel(target);
     damage = spec->attack + (actor->rage / 10) * 2;
     if (damage < 0) {
         damage = 0;
     }
-    target->hp -= damage;
-    if (target->hp < 0) {
-        target->hp = 0;
+    event_count = target->hp <= damage ? 2u : 1u;
+    if (!battleCanQueueEvents(battle, event_count)) {
+        return false;
     }
-    battleQueueEvent(battle, EVENT_DAMAGE, side, target_side, damage);
-    if (target->hp == 0) {
+
+    damage_event.type = EVENT_DAMAGE;
+    damage_event.source = side;
+    damage_event.target = target_side;
+    damage_event.amount = damage;
+    battleStopChannel(actor);
+    actor->cooldown = spec->action_cd_frames;
+    battleStopChannel(target);
+    target->hp -= damage;
+    if (target->hp <= 0) {
+        target->hp = 0;
         battle->finished = true;
         battle->winner = side;
-        battleQueueEvent(battle, EVENT_BATTLE_END, side, target_side, 0);
+        end_event.type = EVENT_BATTLE_END;
+        end_event.source = side;
+        end_event.target = target_side;
+        end_event.amount = 0;
+        battleQueueEvents(battle, &damage_event, 1u);
+        battleQueueEvents(battle, &end_event, 1u);
+    } else {
+        battleQueueEvents(battle, &damage_event, 1u);
     }
     return true;
 }
@@ -154,17 +153,37 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
                   size_t event_capacity)
 {
     size_t event_count;
+    BattleEvent frame_events[SIDE_COUNT];
     Side side;
 
     if (battle == 0 || battle->paused || (events == 0 && event_capacity != 0u)) {
         return 0u;
     }
 
-    event_count = battleFlushEvents(battle, events, event_capacity);
+    if (battle->pending_event_count > 0u) {
+        return battleFlushEvents(battle, events, event_capacity);
+    }
     if (battle->finished) {
-        return event_count;
+        return 0u;
     }
 
+    event_count = 0u;
+    for (side = SIDE_PLAYER; side < SIDE_COUNT; ++side) {
+        const FighterState *fighter = &battle->fighter[side];
+        uint32_t next_frame = fighter->channel_frames + 1u;
+
+        if ((fighter->channel == CHANNEL_YOWL &&
+             next_frame % BATTLE_RAGE_TICK_FRAMES == 0u) ||
+            (fighter->channel == CHANNEL_HEAL &&
+             next_frame % BATTLE_HEAL_TICK_FRAMES == 0u)) {
+            ++event_count;
+        }
+    }
+    if (!battleCanQueueEvents(battle, event_count)) {
+        return 0u;
+    }
+
+    event_count = 0u;
     for (side = SIDE_PLAYER; side < SIDE_COUNT; ++side) {
         FighterState *fighter = &battle->fighter[side];
         const FighterSpec *spec = &battle->spec[side];
@@ -188,8 +207,11 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
             if (fighter->rage > spec->rage_cap) {
                 fighter->rage = spec->rage_cap;
             }
-            battleEmit(events, event_capacity, &event_count, EVENT_RAGE, side,
-                       side, fighter->rage - old_rage);
+            frame_events[event_count].type = EVENT_RAGE;
+            frame_events[event_count].source = side;
+            frame_events[event_count].target = side;
+            frame_events[event_count].amount = fighter->rage - old_rage;
+            ++event_count;
         } else if (fighter->channel == CHANNEL_HEAL &&
                    fighter->channel_frames % BATTLE_HEAL_TICK_FRAMES == 0u) {
             int old_hp = fighter->hp;
@@ -198,10 +220,14 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
             if (fighter->hp > spec->max_hp) {
                 fighter->hp = spec->max_hp;
             }
-            battleEmit(events, event_capacity, &event_count, EVENT_HEAL, side,
-                       side, fighter->hp - old_hp);
+            frame_events[event_count].type = EVENT_HEAL;
+            frame_events[event_count].source = side;
+            frame_events[event_count].target = side;
+            frame_events[event_count].amount = fighter->hp - old_hp;
+            ++event_count;
         }
     }
 
-    return event_count;
+    battleQueueEvents(battle, frame_events, event_count);
+    return battleFlushEvents(battle, events, event_capacity);
 }

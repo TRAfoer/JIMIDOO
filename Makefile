@@ -2,6 +2,8 @@
 #
 # SPDX-FileContributor: Antonio Niño Díaz, 2023-2026
 
+.DEFAULT_GOAL := all
+
 export BLOCKSDS			?= /opt/blocksds/core
 export BLOCKSDSEXT		?= /opt/blocksds/external
 

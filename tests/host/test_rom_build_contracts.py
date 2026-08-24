@@ -100,6 +100,19 @@ class RomBuildContractTest(unittest.TestCase):
             for name, paths in controlled.items()
         }
 
+    def test_default_goal_builds_the_rom(self) -> None:
+        """Bare make must traverse source compilation through ROM packaging."""
+        (ROOT / "build").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=ROOT / "build") as directory:
+            variables = self.make_sandbox(Path(directory))
+            result = self.run_make(
+                "--dry-run",
+                "--always-make",
+                *(f"{name}={value}" for name, value in variables.items()),
+            )
+
+            self.assertIn("NDSTOOL", result.stdout)
+
     def test_payload_changes_schedule_their_assets_and_rom(self) -> None:
         """Dropping any direct payload edge must suppress its expected rebuild."""
         (ROOT / "build").mkdir(exist_ok=True)

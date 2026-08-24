@@ -96,6 +96,8 @@ void battleAnimationOnAction(BattleAnimation *animation, Side side,
 void battleAnimationOnEvents(BattleAnimation *animation,
                              const BattleEvent *events, size_t event_count);
 void battleAnimationTick(BattleAnimation *animation, bool paused);
+bool battleAnimationFighterVisible(uint8_t flash_frames, uint32_t frame);
+bool battleAnimationHorizontalFlip(Side side);
 void battleAnimationDraw(const BattleAnimation *animation,
                          const BattleState *battle, CatId player_cat,
                          CatId enemy_cat);

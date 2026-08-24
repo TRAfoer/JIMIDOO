@@ -17,7 +17,7 @@ NITROFS = ROOT / "nitrofs" / "cats"
 SOURCE = ROOT / "assets_src" / "cats"
 sys.path.insert(0, str(ROOT / "tools"))
 
-from process_cats import indexed_texture
+from process_cats import indexed_texture, process_image
 
 
 class AssetManifestTest(unittest.TestCase):
@@ -34,10 +34,10 @@ class AssetManifestTest(unittest.TestCase):
                 "1": "yowl",
                 "2": "hiss",
                 "3": "scratch",
-                "4": "hit",
+                "4": "idle",
                 "5": "heal",
                 "6": "dead",
-                "7": "idle",
+                "7": "hit",
             },
         )
 
@@ -68,6 +68,12 @@ class AssetManifestTest(unittest.TestCase):
         self.assertEqual(len(list(NITROFS.glob("*.img.bin"))), 35)
         self.assertEqual(len(list(NITROFS.glob("*.pal.bin"))), 35)
 
+        for cat, cat_name in cats.items():
+            for action, action_name in actions.items():
+                expected = process_image(SOURCE / f"cat_{cat}_{action}.png")
+                with Image.open(OUTPUT / f"{cat_name}_{action_name}.png") as actual:
+                    self.assertEqual(actual.convert("RGBA").tobytes(), expected.tobytes())
+
         for stem in expected_stems:
             with Image.open(OUTPUT / f"{stem}.png") as image:
                 self.assertEqual(image.size, (128, 128))
@@ -81,6 +87,7 @@ class AssetManifestTest(unittest.TestCase):
             self.assertLessEqual(palette_data.stat().st_size, 256 * 2)
             self.assertEqual(palette_data.stat().st_size % 2, 0)
             self.assertLess(max(image_data.read_bytes()), palette_data.stat().st_size // 2)
+            self.assertEqual(image_data.read_bytes()[0], 0)
 
     def test_retained_semitransparent_edge_uses_straight_rgb_not_magenta_matte(self) -> None:
         """An edge retained after thresholding must not inherit the magenta key color."""

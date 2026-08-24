@@ -37,6 +37,7 @@ host-test: $(TESTS)
 	& "$(PYTHON)" test_font_assets.py
 	& "$(PYTHON)" test_font_runtime_assets.py
 	& "$(PYTHON)" test_asset_manifest.py
+	& "$(PYTHON)" test_battle_render_contract.py
 	& "$(PYTHON)" test_asset_dependencies.py
 	& "$(PYTHON)" test_rom_build_contracts.py
 	powershell.exe -NoProfile -ExecutionPolicy Bypass -File test_host_tool_discovery.ps1

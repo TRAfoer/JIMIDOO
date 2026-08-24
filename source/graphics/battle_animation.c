@@ -14,6 +14,16 @@ static bool animationSideIsValid(Side side)
     return side == SIDE_PLAYER || side == SIDE_AI;
 }
 
+bool battleAnimationFighterVisible(uint8_t flash_frames, uint32_t frame)
+{
+    return flash_frames == 0u || ((flash_frames + frame) & 1u) == 0u;
+}
+
+bool battleAnimationHorizontalFlip(Side side)
+{
+    return side == SIDE_AI;
+}
+
 static CatAction actionImage(BattleCommand command)
 {
     switch (command) {
@@ -255,21 +265,20 @@ static void drawFighter(const BattleAnimation *animation,
     unsigned int scale = animationScale(fighter);
     int scaled_size = 128 * (int)scale / (int)FONT_SCALE_ONE;
     int center_adjustment = (scaled_size - 128) / 2;
-    bool flip = side == SIDE_AI;
+    bool flip = battleAnimationHorizontalFlip(side);
 
-    if (fighter->flash_frames != 0u &&
-        ((fighter->flash_frames + animation->frame) & 1u) != 0u) {
-        graphicsTopFillRect(base_x + offset + 8, base_y + 8, 112, 112,
-                            RGB15(31, 28, 25));
-    }
     if (fighter->afterimage_frames != 0u) {
         int trail = side == SIDE_PLAYER ? -7 : 7;
         catTextureDrawScaled(cat, action,
                              base_x + offset + trail - center_adjustment,
                              base_y - center_adjustment, flip, scale);
     }
-    catTextureDrawScaled(cat, action, base_x + offset - center_adjustment,
-                         base_y - center_adjustment, flip, scale);
+    if (battleAnimationFighterVisible(fighter->flash_frames,
+                                      animation->frame)) {
+        catTextureDrawScaled(cat, action,
+                             base_x + offset - center_adjustment,
+                             base_y - center_adjustment, flip, scale);
+    }
 }
 
 static void drawParticles(const BattleAnimation *animation)

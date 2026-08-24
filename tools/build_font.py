@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_FONT = Path(r"C:\Windows\Fonts\simhei.ttf")
+DEFAULT_FONT = ROOT / "assets_src" / "fonts" / "SourceHanSansCN-Regular.otf"
 DEFAULT_GLYPHS = ROOT / "assets" / "fonts" / "required_glyphs.txt"
 DEFAULT_SUBSET = ROOT / "assets" / "fonts" / "jimidou_subset.ttf"
 DEFAULT_ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
@@ -21,6 +21,8 @@ DEFAULT_METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 ATLAS_WIDTH = 1024
 PADDING = 1
 PIXEL_SIZE = 24
+SUBSET_FAMILY = "JiMiDoo Sans"
+SUBSET_POSTSCRIPT_NAME = "JiMiDooSans-Regular"
 
 
 def next_power_of_two(value: int) -> int:
@@ -44,15 +46,37 @@ def require_coverage(font_path: Path, characters: list[str]) -> None:
         raise ValueError(f"font lacks required glyphs: {codepoints}")
 
 
+def rename_subset_font(font: TTFont) -> None:
+    """Avoid carrying Source Han Sans reserved names into a modified subset."""
+    replacements = {
+        1: SUBSET_FAMILY,
+        3: "2026;JiMiDoo;JiMiDooSans-Regular",
+        4: f"{SUBSET_FAMILY} Regular",
+        6: SUBSET_POSTSCRIPT_NAME,
+    }
+    for record in font["name"].names:
+        replacement = replacements.get(record.nameID)
+        if replacement is not None:
+            record.string = replacement.encode(record.getEncoding())
+
+    if "CFF " in font:
+        cff = font["CFF "].cff
+        cff.fontNames[0] = SUBSET_POSTSCRIPT_NAME
+        top_dict = cff.topDictIndex[0]
+        top_dict.FamilyName = SUBSET_FAMILY
+        top_dict.FullName = f"{SUBSET_FAMILY} Regular"
+
+
 def build_subset(font_path: Path, characters: list[str], output: Path) -> None:
     font = TTFont(font_path, recalcTimestamp=False)
     options = subset.Options()
     options.recalc_timestamp = False
-    options.name_IDs = [0, 1, 2, 3, 4, 5, 6]
+    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]
     options.drop_tables.append("meta")
     subsetter = subset.Subsetter(options=options)
     subsetter.populate(unicodes=[ord(character) for character in characters])
     subsetter.subset(font)
+    rename_subset_font(font)
     font.recalcTimestamp = False
     font["head"].created = 0
     font["head"].modified = 0

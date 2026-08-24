@@ -46,6 +46,11 @@ NITROFSDIR	:= nitrofs
 
 FONT_CATALOGS	:= source/localization/strings_zh_cn.c \
 		   source/localization/strings_en.c
+DEFAULT_FONT_SOURCE	:= assets_src/fonts/SourceHanSansCN-Regular.otf
+FONT_SOURCE	?= $(if $(strip $(FONT_FILE)),$(FONT_FILE),$(DEFAULT_FONT_SOURCE))
+empty	:=
+space	:= $(empty) $(empty)
+FONT_SOURCE_PREREQUISITE	= $(subst $(space),\$(space),$(FONT_SOURCE))
 FONT_GLYPHS	:= assets/fonts/required_glyphs.txt
 FONT_SUBSET	:= assets/fonts/jimidou_subset.ttf
 FONT_ATLAS	:= assets/fonts/jimidou_font_atlas.png
@@ -54,7 +59,7 @@ FONT_GENERATED_ASSETS	:= $(FONT_SUBSET) $(FONT_ATLAS) $(FONT_METRICS)
 FONT_RUNTIME_IMAGE	:= nitrofs/fonts/jimidou_font.a5i3.bin
 FONT_RUNTIME_PALETTE	:= nitrofs/fonts/jimidou_font.pal.bin
 FONT_RUNTIME_ASSETS	:= $(FONT_RUNTIME_IMAGE) $(FONT_RUNTIME_PALETTE)
-FONT_FILE_ARGUMENT	= $(if $(strip $(FONT_FILE)),--font "$(FONT_FILE)",)
+FONT_FILE_ARGUMENT	= --font "$(FONT_SOURCE)"
 
 # Defines passed to all files
 # ---------------------------
@@ -234,7 +239,7 @@ $(FONT_GLYPHS): $(FONT_CATALOGS) tools/extract_glyphs.py
 	@echo "  GLYPHS  $^"
 	$(V)$(PYTHON) tools/extract_glyphs.py --output $(FONT_GLYPHS)
 
-$(FONT_GENERATED_ASSETS) &: $(FONT_GLYPHS) tools/build_font.py
+$(FONT_GENERATED_ASSETS) &: $(FONT_GLYPHS) $(FONT_SOURCE_PREREQUISITE) tools/build_font.py
 	@echo "  FONT    $^"
 	$(V)$(PYTHON) tools/build_font.py $(FONT_FILE_ARGUMENT) \
 		--glyphs $(FONT_GLYPHS) \

@@ -39,3 +39,14 @@ Some cat assets and visual ideas are adapted from materials by bilibili creator 
 项目仍在开发中，游戏数值、AI、界面和素材可能继续调整。
 
 This project is under active development. Balance, AI, interface, and assets may continue to change.
+
+## 许可 / License
+
+除另有说明外，本项目原创源代码以 GNU General Public License v3.0 only
+（`GPL-3.0-only`）授权。游戏美术、音频、字体及其他第三方材料不包含在该授权中；
+详情请参阅 `ASSET_LICENSES.md` 和 `THIRD_PARTY_NOTICES.md`。
+
+Unless otherwise stated, the original source code in this project is licensed
+under the GNU General Public License v3.0 only (`GPL-3.0-only`). Game artwork,
+audio, fonts, and other third-party materials are not covered by that license;
+see `ASSET_LICENSES.md` and `THIRD_PARTY_NOTICES.md` for details.

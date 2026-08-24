@@ -14,7 +14,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_FONT = Path(r"C:\Windows\Fonts\simhei.ttf")
+DEFAULT_FONT = ROOT / "assets_src" / "fonts" / "SourceHanSansCN-Regular.otf"
 ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
 METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 RUNTIME_IMAGE = ROOT / "nitrofs" / "fonts" / "jimidou_font.a5i3.bin"

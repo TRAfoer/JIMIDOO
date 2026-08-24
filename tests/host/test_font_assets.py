@@ -19,7 +19,7 @@ from PIL import Image
 from tools.extract_glyphs import collect_glyphs
 
 
-DEFAULT_FONT = Path(r"C:\Windows\Fonts\simhei.ttf")
+DEFAULT_FONT = ROOT / "assets_src" / "fonts" / "SourceHanSansCN-Regular.otf"
 COMMITTED_GLYPHS = ROOT / "assets" / "fonts" / "required_glyphs.txt"
 COMMITTED_SUBSET = ROOT / "assets" / "fonts" / "jimidou_subset.ttf"
 COMMITTED_ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
@@ -38,6 +38,56 @@ class FontArtifactTest(unittest.TestCase):
             catalog.write_text('[TEXT_ONLY] = "A";\n', encoding="utf-8")
             glyphs = set(collect_glyphs((catalog,)))
             self.assertTrue(MANDATORY_RUNTIME_GLYPHS <= glyphs)
+
+    def test_default_font_is_redistributable_source_han_sans(self) -> None:
+        """The default build must not depend on a proprietary system font."""
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary)
+            subset = output / "subset.ttf"
+            atlas = output / "atlas.png"
+            metrics = output / "metrics.h"
+            environment = os.environ.copy()
+            environment.pop("FONT_FILE", None)
+            subprocess.run(
+                [
+                    sys.executable,
+                    "tools/build_font.py",
+                    "--output-font",
+                    str(subset),
+                    "--output-atlas",
+                    str(atlas),
+                    "--output-metrics",
+                    str(metrics),
+                ],
+                cwd=ROOT,
+                env=environment,
+                check=True,
+            )
+
+            font = TTFont(subset)
+            names = font["name"].names
+            family_names = {
+                record.toUnicode() for record in names if record.nameID in {1, 4, 6}
+            }
+            unique_names = {
+                record.toUnicode() for record in names if record.nameID == 3
+            }
+            decoded = {
+                record.toUnicode()
+                for record in names
+                if record.nameID in {0, 1, 4, 5, 13, 14}
+            }
+            metadata = "\n".join(decoded)
+            self.assertTrue(any("JiMiDoo Sans" in name for name in family_names))
+            self.assertTrue(all("Source" not in name for name in family_names))
+            self.assertEqual(unique_names, {"2026;JiMiDoo;JiMiDooSans-Regular"})
+            self.assertIn("Adobe", metadata)
+            self.assertIn("SIL Open Font License", metadata)
+            cff = font["CFF "].cff
+            top_dict = cff.topDictIndex[0]
+            self.assertEqual(cff.fontNames[0], "JiMiDooSans-Regular")
+            self.assertEqual(top_dict.FamilyName, "JiMiDoo Sans")
+            self.assertEqual(top_dict.FullName, "JiMiDoo Sans Regular")
 
     def build(self, output: Path) -> tuple[Path, Path, Path, Path]:
         glyphs = output / "required_glyphs.txt"

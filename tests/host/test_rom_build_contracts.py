@@ -14,7 +14,9 @@ MAKE = shutil.which("make")
 
 
 class RomBuildContractTest(unittest.TestCase):
-    def run_make(self, *arguments: str) -> subprocess.CompletedProcess[str]:
+    def run_make(
+        self, *arguments: str, check: bool = True
+    ) -> subprocess.CompletedProcess[str]:
         if MAKE is None:
             self.fail("make is required for build-contract tests")
         environment = os.environ.copy()
@@ -23,7 +25,7 @@ class RomBuildContractTest(unittest.TestCase):
         return subprocess.run(
             [MAKE, "--no-print-directory", *arguments],
             cwd=ROOT,
-            check=True,
+            check=check,
             env=environment,
             text=True,
             capture_output=True,
@@ -48,6 +50,7 @@ class RomBuildContractTest(unittest.TestCase):
                 temporary / "strings_en.c",
             ],
             "FONT_GLYPHS": temporary / "required_glyphs.txt",
+            "FONT_SOURCE": temporary / "SourceHanSansCN-Regular.otf",
             "FONT_SUBSET": temporary / "jimidou_subset.ttf",
             "FONT_ATLAS": temporary / "jimidou_font_atlas.png",
             "FONT_METRICS": temporary / "jimidou_font_metrics.h",
@@ -72,6 +75,7 @@ class RomBuildContractTest(unittest.TestCase):
         timestamp_groups = (
             controlled["FONT_CATALOGS"],
             [controlled["FONT_GLYPHS"]],
+            [controlled["FONT_SOURCE"]],
             [
                 controlled["FONT_SUBSET"],
                 controlled["FONT_ATLAS"],
@@ -141,6 +145,49 @@ class RomBuildContractTest(unittest.TestCase):
                     self.assertNotIn("GLYPHS", result.stdout)
                     self.assertNotIn("FONT    ", result.stdout)
                     self.assertNotIn("FONT.NDS", result.stdout)
+
+    def test_font_source_change_regenerates_generated_font_assets(self) -> None:
+        """Changing the bundled font must rebuild its immediate derivatives."""
+        (ROOT / "build").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=ROOT / "build") as directory:
+            variables = self.make_sandbox(Path(directory))
+            common = [f"{name}={value}" for name, value in variables.items()]
+            common.append(f"--old-file={variables['ELF']}")
+            font_source = ROOT / variables["FONT_SOURCE"]
+            changed = time.time() + 200000
+            os.utime(font_source, (changed, changed))
+
+            result = self.run_make(
+                "--dry-run",
+                *common,
+                variables["ROM"],
+            )
+
+            self.assertIn("FONT    ", result.stdout)
+
+    def test_font_source_path_with_spaces_is_a_single_prerequisite(self) -> None:
+        """A normal Windows font path must not be split into make targets."""
+        (ROOT / "build").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=ROOT / "build") as directory:
+            temporary = Path(directory)
+            variables = self.make_sandbox(temporary)
+            spaced_dir = temporary / "font source"
+            spaced_dir.mkdir()
+            spaced_font = spaced_dir / "SourceHanSansCN-Regular.otf"
+            spaced_font.write_bytes(b"font")
+            variables["FONT_SOURCE"] = spaced_font.relative_to(ROOT).as_posix()
+            common = [f"{name}={value}" for name, value in variables.items()]
+
+            result = self.run_make(
+                "--dry-run",
+                "--always-make",
+                *common,
+                variables["FONT_SUBSET"],
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(f'--font "{variables["FONT_SOURCE"]}"', result.stdout)
 
     def test_direct_payload_ignores_a_stale_live_font_catalog(self) -> None:
         """A cat payload must not traverse the live font dependency chain."""
@@ -370,7 +417,8 @@ class RomBuildContractTest(unittest.TestCase):
         self.assertRegex(
             makefile,
             r"(?m)^\$\(FONT_GENERATED_ASSETS\) &: "
-            r"\$\(FONT_GLYPHS\) tools/build_font\.py$",
+            r"\$\(FONT_GLYPHS\) \$\(FONT_SOURCE_PREREQUISITE\) "
+            r"tools/build_font\.py$",
         )
         self.assertRegex(
             makefile,

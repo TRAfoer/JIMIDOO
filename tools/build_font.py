@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_FONT = ROOT / "assets_src" / "fonts" / "SourceHanSansCN-Regular.otf"
+DEFAULT_FONT = ROOT / "assets_src" / "fonts" / "FZG_CN.ttf"
 DEFAULT_GLYPHS = ROOT / "assets" / "fonts" / "required_glyphs.txt"
 DEFAULT_SUBSET = ROOT / "assets" / "fonts" / "jimidou_subset.ttf"
 DEFAULT_ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
@@ -71,7 +71,7 @@ def build_subset(font_path: Path, characters: list[str], output: Path) -> None:
     font = TTFont(font_path, recalcTimestamp=False)
     options = subset.Options()
     options.recalc_timestamp = False
-    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 13, 14]
+    options.name_IDs = [0, 1, 2, 3, 4, 5, 6, 9, 13, 14]
     options.drop_tables.append("meta")
     subsetter = subset.Subsetter(options=options)
     subsetter.populate(unicodes=[ord(character) for character in characters])

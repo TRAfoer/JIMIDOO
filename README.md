@@ -34,6 +34,10 @@ This project was generated with OpenAI Codex and iterated under the developer's 
 
 Some cat assets and visual ideas are adapted from materials by bilibili creator **@洪山桥小老板**. The rights to the referenced materials remain with their original creator or respective rights holders.
 
+游戏字体使用 Poxiao Fonts 的 PoxiaoPixel Regular，并依据 SIL Open Font License 1.1 分发。
+
+The game uses Poxiao Fonts' PoxiaoPixel Regular, distributed under the SIL Open Font License 1.1.
+
 ## 项目状态 / Project Status
 
 项目仍在开发中，游戏数值、AI、界面和素材可能继续调整。

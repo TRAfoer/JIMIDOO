@@ -46,7 +46,7 @@ NITROFSDIR	:= nitrofs
 
 FONT_CATALOGS	:= source/localization/strings_zh_cn.c \
 		   source/localization/strings_en.c
-DEFAULT_FONT_SOURCE	:= assets_src/fonts/SourceHanSansCN-Regular.otf
+DEFAULT_FONT_SOURCE	:= assets_src/fonts/FZG_CN.ttf
 FONT_SOURCE	?= $(if $(strip $(FONT_FILE)),$(FONT_FILE),$(DEFAULT_FONT_SOURCE))
 empty	:=
 space	:= $(empty) $(empty)

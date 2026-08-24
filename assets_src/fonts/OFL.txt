@@ -1,6 +1,5 @@
-Copyright 2014-2025 Adobe (http://www.adobe.com/), with Reserved Font
-Name 'Source'. Source is a trademark of Adobe in the United States
-and/or other countries.
+Copyright (c) 2023-2025 Astro_2539, 2008-2025 Kreative Software,
+2021-2025 Lee Minseo, 2025 Poxiao Labs.
 
 This Font Software is licensed under the SIL Open Font License,
 Version 1.1.

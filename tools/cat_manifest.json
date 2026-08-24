@@ -11,9 +11,16 @@
     "1": "yowl",
     "2": "hiss",
     "3": "scratch",
-    "4": "idle",
+    "4": "hit",
     "5": "heal",
     "6": "dead",
-    "7": "hit"
+    "7": "idle"
+  },
+  "mirror_to_canonical_right": {
+    "a": {"1": false, "2": false, "3": false, "4": false, "5": false, "6": true, "7": false},
+    "b": {"1": true, "2": true, "3": true, "4": true, "5": true, "6": true, "7": true},
+    "c": {"1": true, "2": true, "3": true, "4": true, "5": false, "6": false, "7": true},
+    "d": {"1": false, "2": false, "3": true, "4": false, "5": true, "6": false, "7": true},
+    "e": {"1": true, "2": false, "3": true, "4": true, "5": true, "6": true, "7": false}
   }
 }

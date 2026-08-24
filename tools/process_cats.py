@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,10 +22,12 @@ def load_manifest(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def process_image(source: Path) -> Image.Image:
+def process_image(source: Path, mirror: bool = False) -> Image.Image:
     """Return one centered RGBA review image without changing the source file."""
     with Image.open(source) as opened:
         image = opened.convert("RGBA")
+    if mirror:
+        image = ImageOps.mirror(image)
     alpha_bounds = image.getchannel("A").getbbox()
     if alpha_bounds is None:
         raise ValueError(f"source has no visible pixels: {source}")
@@ -92,12 +94,18 @@ def main() -> None:
     manifest = load_manifest(args.manifest)
     cats = dict(manifest["cats"])
     actions = dict(manifest["actions"])
+    orientation = dict(manifest["mirror_to_canonical_right"])
     for cat, cat_name in sorted(cats.items()):
         for action, action_name in sorted(actions.items(), key=lambda item: int(item[0])):
             source = args.source / f"cat_{cat}_{action}.png"
             if not source.is_file():
                 raise FileNotFoundError(f"missing source image: {source}")
-            write_outputs(process_image(source), f"{cat_name}_{action_name}", args.output, args.nitrofs)
+            write_outputs(
+                process_image(source, mirror=orientation[cat][action]),
+                f"{cat_name}_{action_name}",
+                args.output,
+                args.nitrofs,
+            )
 
 
 if __name__ == "__main__":

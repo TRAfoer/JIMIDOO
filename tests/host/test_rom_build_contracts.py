@@ -54,6 +54,7 @@ class RomBuildContractTest(unittest.TestCase):
             "FONT_RUNTIME_IMAGE": temporary / "jimidou_font.a5i3.bin",
             "FONT_RUNTIME_PALETTE": temporary / "jimidou_font.pal.bin",
             "NITROFS_CAT_PAYLOADS": temporary / "orange_idle.img.bin",
+            "NITROFS_BACKGROUND_PAYLOADS": temporary / "alley_day.img.bin",
             "NITROFS_BGM_PAYLOADS": temporary / "menu.wav",
             "SOURCES_AUDIO": temporary / "start.wav",
         }
@@ -80,6 +81,7 @@ class RomBuildContractTest(unittest.TestCase):
                 controlled["FONT_RUNTIME_IMAGE"],
                 controlled["FONT_RUNTIME_PALETTE"],
                 controlled["NITROFS_CAT_PAYLOADS"],
+                controlled["NITROFS_BACKGROUND_PAYLOADS"],
                 controlled["NITROFS_BGM_PAYLOADS"],
                 controlled["SOURCES_AUDIO"],
                 info_dir / "soundbank.h",
@@ -122,6 +124,7 @@ class RomBuildContractTest(unittest.TestCase):
             common.append(f"--old-file={variables['ELF']}")
             cases = (
                 (variables["NITROFS_CAT_PAYLOADS"], False),
+                (variables["NITROFS_BACKGROUND_PAYLOADS"], False),
                 (variables["NITROFS_BGM_PAYLOADS"], False),
                 (variables["FONT_RUNTIME_IMAGE"], False),
             )

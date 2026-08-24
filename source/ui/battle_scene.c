@@ -170,6 +170,8 @@ uint32_t battleScenePresentationCooldown(uint32_t cooldown_frames,
 #include "audio_service.h"
 #include "graphics_service.h"
 
+static uint32_t background_random_state = UINT32_C(0x4261636B);
+
 static bool setupIsValid(const BattleSetup *setup)
 {
     return setup != NULL && (unsigned int)setup->player_cat < CAT_COUNT &&
@@ -285,14 +287,18 @@ BattleResult battleSceneRun(const BattleSetup *setup)
     BattleSceneLifecycle lifecycle;
     BattleEvent events[BATTLE_PENDING_EVENT_CAPACITY];
     bool keep_running = true;
+    BattleBackgroundId background;
 
     if (!setupIsValid(setup)) {
         return BATTLE_ABORTED;
     }
 
+    background = battleBackgroundNext(&background_random_state, setup->seed);
     catTexturesReset();
-    if (!catTexturesLoad(setup->player_cat) ||
+    if (!battleBackgroundLoad(background) ||
+        !catTexturesLoad(setup->player_cat) ||
         !catTexturesLoad(setup->enemy_cat)) {
+        battleBackgroundReset();
         return BATTLE_ABORTED;
     }
 
@@ -358,8 +364,10 @@ BattleResult battleSceneRun(const BattleSetup *setup)
                                                       battle.finished);
     }
 
-    return battle.winner == SIDE_PLAYER ? BATTLE_PLAYER_WIN :
-                                          BATTLE_PLAYER_DEAD;
+    BattleResult result = battle.winner == SIDE_PLAYER ? BATTLE_PLAYER_WIN :
+                                                         BATTLE_PLAYER_DEAD;
+    battleBackgroundReset();
+    return result;
 }
 
 #else

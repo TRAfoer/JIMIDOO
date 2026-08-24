@@ -92,9 +92,12 @@ SOUNDBANK_BINARY	:= $(SOUNDBANKDIR)/soundbank.bin
 
 NITROFS_CAT_PAYLOADS	:= $(sort $(wildcard $(NITROFSDIR)/cats/*.img.bin) \
 				   $(wildcard $(NITROFSDIR)/cats/*.pal.bin))
+NITROFS_BACKGROUND_PAYLOADS := $(sort $(wildcard $(NITROFSDIR)/backgrounds/*.img.bin) \
+					$(wildcard $(NITROFSDIR)/backgrounds/*.pal.bin))
 NITROFS_BGM_PAYLOADS	:= $(sort $(wildcard $(NITROFSDIR)/audio/*.wav))
 NITROFS_FONT_PAYLOADS	:= $(FONT_RUNTIME_ASSETS)
 NITROFS_PAYLOADS	:= $(sort $(NITROFS_CAT_PAYLOADS) \
+				   $(NITROFS_BACKGROUND_PAYLOADS) \
 				   $(NITROFS_BGM_PAYLOADS) \
 				   $(NITROFS_FONT_PAYLOADS))
 

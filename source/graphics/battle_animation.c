@@ -367,8 +367,7 @@ void battleAnimationDraw(const BattleAnimation *animation,
     enemy_name = textGet(TEXT_CAT_NAME(enemy_cat));
 
     graphicsFrameBegin();
-    graphicsTopFillGradient(RGB15(8, 3, 12), RGB15(3, 2, 7),
-                            RGB15(14, 5, 2), RGB15(23, 8, 3));
+    battleBackgroundDraw();
     graphicsTopFillRect(0, 0, 256, 27, RGB15(4, 3, 8));
     graphicsTextDrawTop(5, 6, FONT_SCALE_HALF, cream, player_name);
     graphicsTextDrawTop(251 - fontTextWidth(enemy_name, FONT_SCALE_HALF), 6,

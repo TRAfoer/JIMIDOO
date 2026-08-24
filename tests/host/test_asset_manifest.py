@@ -34,12 +34,19 @@ class AssetManifestTest(unittest.TestCase):
                 "1": "yowl",
                 "2": "hiss",
                 "3": "scratch",
-                "4": "idle",
+                "4": "hit",
                 "5": "heal",
                 "6": "dead",
-                "7": "hit",
+                "7": "idle",
             },
         )
+        orientation = manifest.get("mirror_to_canonical_right")
+        self.assertIsInstance(orientation, dict)
+        self.assertEqual(set(orientation), set(manifest["cats"]))
+        for cat, action_map in orientation.items():
+            self.assertEqual(set(action_map), set(manifest["actions"]))
+            self.assertTrue(all(type(value) is bool for value in action_map.values()))
+        self.assertTrue(orientation["a"]["6"])
 
         cats = manifest["cats"]
         actions = manifest["actions"]
@@ -70,7 +77,10 @@ class AssetManifestTest(unittest.TestCase):
 
         for cat, cat_name in cats.items():
             for action, action_name in actions.items():
-                expected = process_image(SOURCE / f"cat_{cat}_{action}.png")
+                expected = process_image(
+                    SOURCE / f"cat_{cat}_{action}.png",
+                    mirror=orientation[cat][action],
+                )
                 with Image.open(OUTPUT / f"{cat_name}_{action_name}.png") as actual:
                     self.assertEqual(actual.convert("RGBA").tobytes(), expected.tobytes())
 

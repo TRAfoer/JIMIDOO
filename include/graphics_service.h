@@ -18,14 +18,23 @@ typedef enum CatAction {
     CAT_ACTION_COUNT
 } CatAction;
 
+typedef enum BattleBackgroundId {
+    BATTLE_BACKGROUND_ALLEY_DAY,
+    BATTLE_BACKGROUND_ALLEY_DUSK,
+    BATTLE_BACKGROUND_ALLEY_RAIN,
+    BATTLE_BACKGROUND_COUNT
+} BattleBackgroundId;
+
 #define CAT_TEXTURE_COUNT (CAT_COUNT * CAT_ACTION_COUNT)
 #define CAT_TEXTURE_IMAGE_BYTES (128U * 128U)
 #define CAT_TEXTURE_CACHE_CAT_LIMIT 2U
 #define GRAPHICS_FONT_TEXTURE_MAX_BYTES (128U * 1024U)
+#define BATTLE_BACKGROUND_TEXTURE_BYTES (128U * 128U)
 #define GRAPHICS_TEXTURE_VRAM_BYTES (3U * 128U * 1024U)
 #define GRAPHICS_TEXTURE_MAX_RESIDENT_BYTES \
     (GRAPHICS_FONT_TEXTURE_MAX_BYTES + \
-     CAT_TEXTURE_CACHE_CAT_LIMIT * CAT_ACTION_COUNT * CAT_TEXTURE_IMAGE_BYTES)
+     CAT_TEXTURE_CACHE_CAT_LIMIT * CAT_ACTION_COUNT * CAT_TEXTURE_IMAGE_BYTES + \
+     BATTLE_BACKGROUND_TEXTURE_BYTES)
 
 static inline int catTextureIndex(CatId cat, CatAction action)
 {
@@ -49,6 +58,12 @@ void graphicsTextDrawTop(int x, int y, unsigned int scale, uint16_t color,
                          const char *text);
 void graphicsTextDrawSub(int x, int y, unsigned int scale, uint16_t color,
                          const char *text);
+
+BattleBackgroundId battleBackgroundSelect(uint32_t entropy);
+BattleBackgroundId battleBackgroundNext(uint32_t *state, uint32_t entropy);
+bool battleBackgroundLoad(BattleBackgroundId background);
+void battleBackgroundDraw(void);
+void battleBackgroundReset(void);
 
 bool catTextureLoad(CatId cat, CatAction action);
 bool catTexturesLoad(CatId cat);

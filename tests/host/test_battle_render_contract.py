@@ -9,6 +9,18 @@ ANIMATION = ROOT / "source" / "graphics" / "battle_animation.c"
 
 
 class BattleRenderContractTest(unittest.TestCase):
+    def test_scene_loads_a_separately_randomized_background(self) -> None:
+        scene = (ROOT / "source" / "ui" / "battle_scene.c").read_text(
+            encoding="utf-8"
+        )
+        animation = (ROOT / "source" / "graphics" / "battle_animation.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("battleBackgroundNext", scene)
+        self.assertIn("battleBackgroundLoad", scene)
+        self.assertIn("battleBackgroundDraw();", animation)
+        self.assertNotIn("graphicsTopFillGradient(RGB15(8, 3, 12)", animation)
+
     def test_hit_flash_never_draws_the_old_opaque_backdrop(self) -> None:
         source = ANIMATION.read_text(encoding="utf-8")
         self.assertNotIn(

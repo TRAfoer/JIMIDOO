@@ -243,3 +243,49 @@ packaged `PussiFight.nds`.
   terminal hold timing, flicker, and audio sequencing still need emulator or
   hardware smoke testing.
 - `Audios/` remained untouched and untracked throughout the fix round.
+
+---
+
+## Final Warning-Cancellation Fix (2026-08-24)
+
+Base commit: `0bc766a57570aece73874d274c79319b7eb2df38`.
+
+Whole-stage review found that the battle core canceled a pending warned
+scratch on successful hiss while the presentation layer retained its warning
+timer. The stale blinking exclamation and warning label could therefore remain
+visible after the attack no longer existed.
+
+### RED / GREEN
+
+- Added `test_battle_animation.c` using the real pure animation state.
+- RED: `make -C tests/host test_battle_animation` compiled and linked, then
+  aborted on `animation.warning_frames == 0u`; the value was still 42 after
+  `EVENT_HISS_SUCCESS`.
+- GREEN: `battleAnimationOnEvents` now treats `EVENT_HISS_SUCCESS` as
+  authoritative cancellation of the single global warning presentation and
+  clears `warning_frames` before showing the counter caption.
+- The paired regression proves `EVENT_HISS_FAIL` preserves the active warning.
+
+### Fresh verification
+
+- Focused `make -C tests/host test_battle_animation`: PASS.
+- Full host suite with workspace `TEMP`/`TMP`: PASS; all 14 C executables,
+  Python suites, 8 ROM build-contract tests, tool discovery, and audio format
+  checks passed.
+- Forced ROM build with the exact Task 4 environment: PASS; compiled
+  `battle_animation.c`, linked `build/PussiFight.elf`, and packaged the ROM.
+- ROM size: 8,204,288 bytes.
+- ROM SHA-256:
+  `49D8A7F1AC187A2E486B4C702985939DA35622B985155FAA4BD8AF3888752808`.
+
+### Self-review
+
+- Only successful hiss clears the warning presentation; failed hiss does not.
+- The single global warning timer matches the battle core's single pending
+  warned scratch.
+- No HUD, simulation timing, balance constants, or deferred review minors were
+  changed.
+- The lower-screen retained-bitmap/no-flicker path is untouched.
+- `Audios/` remains untouched and untracked.
+- melonDS remains unavailable, so visual emulator smoke testing is still
+  pending.

@@ -115,6 +115,7 @@ void battleAnimationOnEvents(BattleAnimation *animation,
                 showCaption(animation, EVENT_DODGE, event->target, 0);
                 break;
             case EVENT_HISS_SUCCESS:
+                animation->warning_frames = 0u;
                 showCaption(animation, EVENT_HISS_SUCCESS, event->source, 0);
                 break;
             case EVENT_BATTLE_END:

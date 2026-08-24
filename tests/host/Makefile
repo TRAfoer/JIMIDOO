@@ -13,9 +13,9 @@ endif
 
 MSVC_SETUP = $(if $(filter __PATH__,$(VCVARS)),,call "$(VCVARS)" >nul && )
 
-TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_texture_cache.exe test_font_layout.exe test_scene_init.exe test_title_scene_draw.exe test_battle.exe test_ai.exe test_touch_layout.exe test_battle_scene_policy.exe
+TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_texture_cache.exe test_font_layout.exe test_scene_init.exe test_title_scene_draw.exe test_battle.exe test_ai.exe test_touch_layout.exe test_battle_scene_policy.exe test_battle_animation.exe
 
-.PHONY: all clean host-test test_localization test_battle test_ai test_touch_layout test_battle_scene_policy
+.PHONY: all clean host-test test_localization test_battle test_ai test_touch_layout test_battle_scene_policy test_battle_animation
 
 all: host-test
 
@@ -33,6 +33,7 @@ host-test: $(TESTS)
 	./test_ai.exe
 	./test_touch_layout.exe
 	./test_battle_scene_policy.exe
+	./test_battle_animation.exe
 	& "$(PYTHON)" test_font_assets.py
 	& "$(PYTHON)" test_font_runtime_assets.py
 	& "$(PYTHON)" test_asset_manifest.py
@@ -94,6 +95,12 @@ test_battle_scene_policy.exe: test_battle_scene_policy.c ../../include/battle_sc
 
 test_battle_scene_policy: test_battle_scene_policy.exe
 	./test_battle_scene_policy.exe
+
+test_battle_animation.exe: test_battle_animation.c ../../include/battle_scene_internal.h ../../include/battle.h ../../source/graphics/battle_animation.c
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_battle_animation.c ../../source/graphics/battle_animation.c /Fe:$@'
+
+test_battle_animation: test_battle_animation.exe
+	./test_battle_animation.exe
 
 clean:
 	Remove-Item -Force -ErrorAction SilentlyContinue $(TESTS)

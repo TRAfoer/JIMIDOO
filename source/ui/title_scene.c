@@ -9,6 +9,7 @@
 #define SCREEN_WIDTH 256
 
 static Language title_language;
+static bool title_language_initialized;
 static bool title_audio_muted;
 static bool title_initialized;
 static bool title_subscreen_dirty;
@@ -22,7 +23,10 @@ TitleSceneInitStatus titleSceneInit(bool audio_available)
 {
     title_initialized = false;
     title_subscreen_dirty = false;
-    title_language = LANG_ZH_CN;
+    if (!title_language_initialized) {
+        title_language = LANG_ZH_CN;
+        title_language_initialized = true;
+    }
     title_audio_muted = !audio_available;
     textSetLanguage(title_language);
     catTexturesReset();

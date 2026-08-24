@@ -35,5 +35,7 @@ int glDeleteTextures(int count, int *texture_ids);
 void glPolyFmt(int format);
 void glColor(uint16_t color);
 void glSprite(int x, int y, int flip, const glImage *image);
+void glSpriteScaleXY(int x, int y, int scale_x, int scale_y, int flip,
+                     const glImage *image);
 
 #endif

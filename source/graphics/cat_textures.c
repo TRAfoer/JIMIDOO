@@ -239,3 +239,24 @@ void catTextureDraw(CatId cat, CatAction action, int x, int y,
     glSprite(x, y, horizontal_flip ? GL_FLIP_H : GL_FLIP_NONE,
              &cat_images[index]);
 }
+
+void catTextureDrawScaled(CatId cat, CatAction action, int x, int y,
+                          bool horizontal_flip, unsigned int scale)
+{
+    int index = catTextureIndex(cat, action);
+
+    if (index == CAT_TEXTURE_COUNT || !cat_loaded[index] || scale == 0u) {
+        return;
+    }
+
+    CatCacheSlot *slot = findCatSlot(cat);
+    if (slot != NULL) {
+        touchCatSlot(slot);
+    }
+
+    glPolyFmt(POLY_ALPHA(31) | POLY_CULL_NONE | POLY_ID(0));
+    glColor(RGB15(31, 31, 31));
+    glSpriteScaleXY(x, y, (int)(scale << 4), (int)(scale << 4),
+                    horizontal_flip ? GL_FLIP_H : GL_FLIP_NONE,
+                    &cat_images[index]);
+}

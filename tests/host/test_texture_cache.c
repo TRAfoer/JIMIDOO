@@ -22,6 +22,8 @@ static int maximum_active_textures;
 static int maximum_active_palettes;
 static int deleted_textures;
 static int last_draw_texture = -1;
+static int last_draw_scale_x;
+static int last_draw_scale_y;
 
 static FILE *openFile(const char *path, const char *mode)
 {
@@ -115,6 +117,19 @@ void glSprite(int x, int y, int flip, const glImage *image)
     last_draw_texture = image->textureID;
 }
 
+void glSpriteScaleXY(int x, int y, int scale_x, int scale_y, int flip,
+                     const glImage *image)
+{
+    (void)x;
+    (void)y;
+    (void)flip;
+    assert(image != NULL);
+    assert(active_textures[image->textureID]);
+    last_draw_texture = image->textureID;
+    last_draw_scale_x = scale_x;
+    last_draw_scale_y = scale_y;
+}
+
 static void expectDrawn(CatId cat, CatAction action, bool expected)
 {
     last_draw_texture = -1;
@@ -164,6 +179,9 @@ int main(void)
     assert(active_texture_count == 1);
     assert(active_palette_count == 1);
     expectDrawn(CAT_BANANA, CAT_ACTION_IDLE, true);
+    catTextureDrawScaled(CAT_BANANA, CAT_ACTION_IDLE, 4, 5, false, 288u);
+    assert(last_draw_scale_x == (int)(288u << 4));
+    assert(last_draw_scale_y == (int)(288u << 4));
     assert(active_textures[RESERVED_FONT_TEXTURE_ID]);
     assert(active_palettes[RESERVED_FONT_TEXTURE_ID]);
 

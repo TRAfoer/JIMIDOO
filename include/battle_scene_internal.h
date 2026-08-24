@@ -32,6 +32,25 @@ typedef enum BattleHudDirtyRegion {
     BATTLE_HUD_DIRTY_BUTTONS = 2
 } BattleHudDirtyRegion;
 
+typedef struct BattleSceneRouteState {
+    bool explicit_hiss_pending[SIDE_COUNT];
+    bool deferred_scratch[SIDE_COUNT];
+} BattleSceneRouteState;
+
+typedef struct BattlePresentation {
+    Side side;
+    BattleCommand command;
+} BattlePresentation;
+
+typedef struct BattleSceneLifecycle {
+    uint32_t terminal_frames_remaining;
+    bool terminal_started;
+} BattleSceneLifecycle;
+
+enum {
+    BATTLE_TERMINAL_HOLD_FRAMES = 60
+};
+
 typedef struct BattleFighterAnimation {
     CatAction action;
     uint8_t frames;
@@ -55,6 +74,19 @@ unsigned int battleHudCooldownTenths(uint32_t frames);
 unsigned int battleHudDirtyRegions(const BattleHudSnapshot *shown,
                                    const BattleHudSnapshot *next,
                                    bool status_valid, bool buttons_valid);
+void battleSceneRouteInit(BattleSceneRouteState *route);
+BattlePresentation battleSceneRouteSubmitted(BattleSceneRouteState *route,
+                                              Side side,
+                                              BattleCommand command,
+                                              bool accepted,
+                                              bool scratch_deferred);
+size_t battleSceneRouteEvents(BattleSceneRouteState *route,
+                              const BattleEvent *events, size_t event_count,
+                              BattlePresentation *presentations,
+                              size_t presentation_capacity);
+void battleSceneLifecycleInit(BattleSceneLifecycle *lifecycle);
+bool battleSceneLifecycleAfterFrame(BattleSceneLifecycle *lifecycle,
+                                    bool battle_finished);
 void battleHudInit(BattleHud *hud);
 void battleHudDraw(BattleHud *hud, const BattleState *battle);
 

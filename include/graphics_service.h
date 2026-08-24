@@ -55,5 +55,7 @@ bool catTexturesLoad(CatId cat);
 void catTexturesReset(void);
 void catTextureDraw(CatId cat, CatAction action, int x, int y,
                     bool horizontal_flip);
+void catTextureDrawScaled(CatId cat, CatAction action, int x, int y,
+                          bool horizontal_flip, unsigned int scale);
 
 #endif

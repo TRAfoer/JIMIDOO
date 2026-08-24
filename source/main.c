@@ -28,9 +28,9 @@ static FighterSpec fighterSpecForCat(CatId cat)
         base->heal_per_tick,
         base->rage_cap,
         (uint32_t)base->action_cd_frames,
-        10,
-        30,
-        40
+        BATTLE_DEFAULT_DODGE_PERCENT,
+        BATTLE_DEFAULT_WARNING_PERCENT,
+        BATTLE_DEFAULT_COUNTER_PERCENT
     };
 
     return fighter;

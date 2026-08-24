@@ -11,6 +11,9 @@ int main(void)
     assert(orange->rage_per_tick == 5 && orange->heal_per_tick == 15);
     assert(banana->action_cd_frames == 90);
     assert(GAME_FPS == 60 && CAT_COUNT == 5);
+    assert(BATTLE_DEFAULT_DODGE_PERCENT == 0);
+    assert(BATTLE_DEFAULT_WARNING_PERCENT == 30);
+    assert(BATTLE_DEFAULT_COUNTER_PERCENT == 40);
     assert(configCatBase((CatId)CAT_COUNT) == orange);
     return 0;
 }

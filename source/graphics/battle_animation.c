@@ -220,6 +220,28 @@ static CatAction visibleAction(const BattleFighterAnimation *fighter,
     return CAT_ACTION_IDLE;
 }
 
+static unsigned int animationScale(const BattleFighterAnimation *fighter)
+{
+    int elapsed;
+    int triangular;
+
+    if (fighter->frames == 0u || fighter->duration == 0u) {
+        return FONT_SCALE_ONE;
+    }
+    elapsed = fighter->duration - fighter->frames;
+    triangular = elapsed <= fighter->duration / 2 ? elapsed :
+                 fighter->duration - elapsed;
+    if (fighter->action == CAT_ACTION_HISS ||
+        fighter->action == CAT_ACTION_YOWL ||
+        fighter->action == CAT_ACTION_HEAL) {
+        return FONT_SCALE_ONE + (unsigned int)(triangular * 6);
+    }
+    if (fighter->action == CAT_ACTION_HIT) {
+        return FONT_SCALE_ONE - (unsigned int)(triangular * 2);
+    }
+    return FONT_SCALE_ONE;
+}
+
 static void drawFighter(const BattleAnimation *animation,
                         const BattleState *battle, Side side, CatId cat)
 {
@@ -229,6 +251,9 @@ static void drawFighter(const BattleAnimation *animation,
     int base_x = side == SIDE_PLAYER ? 1 : 127;
     int base_y = side == SIDE_PLAYER ? 59 : 29;
     int offset = animationProgressOffset(fighter, side);
+    unsigned int scale = animationScale(fighter);
+    int scaled_size = 128 * (int)scale / (int)FONT_SCALE_ONE;
+    int center_adjustment = (scaled_size - 128) / 2;
     bool flip = side == SIDE_AI;
 
     if (fighter->flash_frames != 0u &&
@@ -238,9 +263,12 @@ static void drawFighter(const BattleAnimation *animation,
     }
     if (fighter->afterimage_frames != 0u) {
         int trail = side == SIDE_PLAYER ? -7 : 7;
-        catTextureDraw(cat, action, base_x + offset + trail, base_y, flip);
+        catTextureDrawScaled(cat, action,
+                             base_x + offset + trail - center_adjustment,
+                             base_y - center_adjustment, flip, scale);
     }
-    catTextureDraw(cat, action, base_x + offset, base_y, flip);
+    catTextureDrawScaled(cat, action, base_x + offset - center_adjustment,
+                         base_y - center_adjustment, flip, scale);
 }
 
 static void drawParticles(const BattleAnimation *animation)
@@ -330,9 +358,13 @@ void battleAnimationDraw(const BattleAnimation *animation,
         const char *warning = textGet(TEXT_STATUS_WARNING);
         int warning_x = (256 - fontTextWidth(warning, FONT_SCALE_HALF)) / 2;
 
-        graphicsTopFillRect(warning_x - 5, 28,
-                            fontTextWidth(warning, FONT_SCALE_HALF) + 10, 14,
+        int icon_x = warning_x - 13;
+
+        graphicsTopFillRect(icon_x - 4, 27,
+                            fontTextWidth(warning, FONT_SCALE_HALF) + 22, 16,
                             RGB15(15, 3, 2));
+        graphicsTopFillRect(icon_x, 29, 3, 8, orange);
+        graphicsTopFillRect(icon_x, 39, 3, 3, orange);
         graphicsTextDrawTop(warning_x, 30, FONT_SCALE_HALF, orange, warning);
     }
     drawFighter(animation, battle, SIDE_PLAYER, player_cat);

@@ -14,6 +14,7 @@ static unsigned int sub_fill_count;
 static unsigned int sub_text_count;
 static unsigned int top_frame_count;
 static unsigned int language_set_count;
+static Language last_language;
 static bool cat_load_succeeds;
 
 int fontTextWidth(const char *text, unsigned int scale)
@@ -25,7 +26,7 @@ int fontTextWidth(const char *text, unsigned int scale)
 
 void textSetLanguage(Language language)
 {
-    (void)language;
+    last_language = language;
     ++language_set_count;
 }
 
@@ -150,9 +151,13 @@ int main(void)
 
     titleSceneUpdate(KEY_SELECT);
     assert(language_set_count == 2);
+    assert(last_language == LANG_EN);
     titleSceneDraw();
     assertLowerDrawCount(2, 4, 4);
     assert(top_frame_count == 4);
+
+    assert(titleSceneInit(true) == TITLE_SCENE_INIT_READY);
+    assert(last_language == LANG_EN);
 
     cat_load_succeeds = false;
     assert(titleSceneInit(false) == TITLE_SCENE_INIT_CAT_UNAVAILABLE);

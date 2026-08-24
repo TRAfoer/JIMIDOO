@@ -86,6 +86,15 @@ ifeq ($(strip $(NITROFSDIR)),)
 else
     SOUNDBANKDIR	:= $(BUILDDIR)/maxmod_nitrofs
 endif
+SOUNDBANK_BINARY	:= $(SOUNDBANKDIR)/soundbank.bin
+
+NITROFS_CAT_PAYLOADS	:= $(sort $(wildcard $(NITROFSDIR)/cats/*.img.bin) \
+				   $(wildcard $(NITROFSDIR)/cats/*.pal.bin))
+NITROFS_BGM_PAYLOADS	:= $(sort $(wildcard $(NITROFSDIR)/audio/*.wav))
+NITROFS_FONT_PAYLOADS	:= $(FONT_RUNTIME_ASSETS)
+NITROFS_PAYLOADS	:= $(sort $(NITROFS_CAT_PAYLOADS) \
+				   $(NITROFS_BGM_PAYLOADS) \
+				   $(NITROFS_FONT_PAYLOADS))
 
 # Tools
 # -----
@@ -196,15 +205,25 @@ DEPS		:= $(OBJS:.o=.d)
 # Targets
 # -------
 
-.PHONY: all assets clean dump dldipatch font-runtime-assets host-test sdimage
+.PHONY: all asset-deps assets clean dump dldipatch font-runtime-assets host-test sdimage
 
 all: $(ROM)
+
+asset-deps:
+	$(PYTHON) -m pip install --requirement tools/requirements-assets.txt
 
 assets: font-runtime-assets
 
 font-runtime-assets: $(FONT_RUNTIME_ASSETS)
 
 $(ROM): $(FONT_RUNTIME_ASSETS)
+
+ifneq ($(strip $(NITROFSDIR)),)
+$(ROM): $(NITROFS_PAYLOADS)
+ifneq ($(SOURCES_AUDIO),)
+$(ROM): $(SOUNDBANK_BINARY)
+endif
+endif
 
 $(FONT_GLYPHS): $(FONT_CATALOGS) tools/extract_glyphs.py
 	@echo "  GLYPHS  $^"
@@ -236,8 +255,6 @@ ifneq ($(SOURCES_AUDIO),)
     NDSTOOL_ARGS	+= -d $(SOUNDBANKDIR)
 endif
 
-# Make the NDS ROM depend on the filesystem only if it is needed
-$(ROM): $(NITROFSDIR)
 endif
 
 # Combine the title strings
@@ -362,12 +379,12 @@ $(BUILDDIR)/%.png.o $(BUILDDIR)/%.h : %.png %.grit
 
 ifneq ($(SOURCES_AUDIO),)
 
-$(SOUNDBANKINFODIR)/soundbank.h: $(SOURCES_AUDIO)
+$(SOUNDBANKINFODIR)/soundbank.h $(SOUNDBANK_BINARY) &: $(SOURCES_AUDIO)
 	@echo "  MMUTIL  $^"
 	@$(MKDIR) -p $(SOUNDBANKDIR)
 	@$(MKDIR) -p $(SOUNDBANKINFODIR)
 	$(V)$(BLOCKSDS)/tools/mmutil/mmutil $^ -d \
-		-o$(SOUNDBANKDIR)/soundbank.bin -h$(SOUNDBANKINFODIR)/soundbank.h
+		-o$(SOUNDBANK_BINARY) -h$(SOUNDBANKINFODIR)/soundbank.h
 
 ifeq ($(strip $(NITROFSDIR)),)
 $(SOUNDBANKDIR)/soundbank.c.o: $(SOUNDBANKINFODIR)/soundbank.h

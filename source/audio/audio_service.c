@@ -154,6 +154,14 @@ void audioSetMusic(MusicId id)
         return;
     }
 
+    if (fade_mode == FADE_OUT && id == current_music) {
+        target_music = current_music;
+        fade_frame = 0;
+        fade_start_volume = music_volume;
+        fade_mode = music_volume < MUSIC_MAX_VOLUME ? FADE_IN : FADE_NONE;
+        return;
+    }
+
     target_music = id;
     fade_frame = 0;
     fade_start_volume = music_volume;
@@ -215,7 +223,9 @@ void audioUpdate(void)
             fade_mode = FADE_NONE;
         }
         else {
-            setMusicVolume(MUSIC_MAX_VOLUME * fade_frame / MUSIC_FADE_FRAMES);
+            setMusicVolume(fade_start_volume +
+                (MUSIC_MAX_VOLUME - fade_start_volume) * fade_frame /
+                MUSIC_FADE_FRAMES);
         }
     }
 }

@@ -10,11 +10,15 @@ import sys
 import tempfile
 import unittest
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
 from fontTools.ttLib import TTFont
 from PIL import Image
 
+from tools.extract_glyphs import collect_glyphs
 
-ROOT = Path(__file__).resolve().parents[2]
+
 DEFAULT_FONT = Path(r"C:\Windows\Fonts\simhei.ttf")
 COMMITTED_GLYPHS = ROOT / "assets" / "fonts" / "required_glyphs.txt"
 COMMITTED_SUBSET = ROOT / "assets" / "fonts" / "jimidou_subset.ttf"
@@ -23,9 +27,18 @@ COMMITTED_METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 METRIC = re.compile(
     r"\{ 0x([0-9A-F]{4,6}), (-?\d+), (-?\d+), (-?\d+), (-?\d+), (-?\d+), (-?\d+), (-?\d+) \},"
 )
+MANDATORY_RUNTIME_GLYPHS = set("0123456789%+.-/:")
 
 
 class FontArtifactTest(unittest.TestCase):
+    def test_runtime_glyphs_are_seeded_independently_of_catalog_text(self) -> None:
+        """Removing the mandatory seed must not silently strip runtime values."""
+        with tempfile.TemporaryDirectory() as temporary:
+            catalog = Path(temporary) / "catalog.c"
+            catalog.write_text('[TEXT_ONLY] = "A";\n', encoding="utf-8")
+            glyphs = set(collect_glyphs((catalog,)))
+            self.assertTrue(MANDATORY_RUNTIME_GLYPHS <= glyphs)
+
     def build(self, output: Path) -> tuple[Path, Path, Path, Path]:
         glyphs = output / "required_glyphs.txt"
         subset = output / "jimidou_subset.ttf"
@@ -78,6 +91,7 @@ class FontArtifactTest(unittest.TestCase):
             self.assertEqual(first_metrics.read_bytes(), COMMITTED_METRICS.read_bytes())
 
             required = (first_dir / "required_glyphs.txt").read_text(encoding="utf-8").rstrip("\n")
+            self.assertTrue(MANDATORY_RUNTIME_GLYPHS <= set(required))
             cmap = TTFont(first_font).getBestCmap()
             metrics = [
                 (int(values[0], 16), *(int(value) for value in values[1:]))

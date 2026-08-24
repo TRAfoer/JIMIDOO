@@ -15,6 +15,7 @@ TABLES = (
 )
 DEFAULT_OUTPUT = ROOT / "assets" / "fonts" / "required_glyphs.txt"
 ENTRY = re.compile(r'^\s*\[TEXT_[A-Z0-9_]+\]\s*=\s*"((?:\\.|[^"\\])*)"', re.MULTILINE)
+MANDATORY_RUNTIME_GLYPHS = "0123456789%+.-/:"
 
 
 def decode_c_string(value: str) -> str:
@@ -37,7 +38,7 @@ def decode_c_string(value: str) -> str:
 
 
 def collect_glyphs(tables: tuple[Path, ...] = TABLES) -> str:
-    characters: set[str] = set()
+    characters: set[str] = set(MANDATORY_RUNTIME_GLYPHS)
     for table in tables:
         source = table.read_text(encoding="utf-8")
         entries = ENTRY.findall(source)

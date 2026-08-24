@@ -20,7 +20,13 @@ DEFAULT_ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
 DEFAULT_METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 ATLAS_WIDTH = 1024
 PADDING = 1
-PIXEL_SIZE = 32
+PIXEL_SIZE = 24
+
+
+def next_power_of_two(value: int) -> int:
+    if value <= 0:
+        raise ValueError("texture dimension must be positive")
+    return 1 << (value - 1).bit_length()
 
 
 def glyph_characters(path: Path) -> list[str]:
@@ -105,6 +111,7 @@ def write_metrics(output: Path, atlas_height: int, placements: list[tuple[int, i
         "",
         f"#define JIMIDOO_FONT_ATLAS_WIDTH {ATLAS_WIDTH}",
         f"#define JIMIDOO_FONT_ATLAS_HEIGHT {atlas_height}",
+        f"#define JIMIDOO_FONT_TEXTURE_HEIGHT {next_power_of_two(atlas_height)}",
         f"#define JIMIDOO_FONT_GLYPH_COUNT {len(placements)}",
         "",
         "static const JimiDooGlyphMetric jimidou_font_glyphs[JIMIDOO_FONT_GLYPH_COUNT] = {",

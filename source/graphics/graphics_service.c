@@ -9,9 +9,15 @@
 
 #define SCREEN_WIDTH 256
 #define SCREEN_HEIGHT 192
-#define FONT_TEXTURE_HEIGHT 256
-#define FONT_TEXTURE_SIZE (JIMIDOO_FONT_ATLAS_WIDTH * FONT_TEXTURE_HEIGHT)
+#define FONT_TEXTURE_SIZE \
+    (JIMIDOO_FONT_ATLAS_WIDTH * JIMIDOO_FONT_TEXTURE_HEIGHT)
 #define FONT_PALETTE_ENTRIES 8
+
+_Static_assert(FONT_TEXTURE_SIZE <= GRAPHICS_FONT_TEXTURE_MAX_BYTES,
+               "runtime font texture exceeds its VRAM budget");
+_Static_assert(GRAPHICS_TEXTURE_MAX_RESIDENT_BYTES <=
+                   GRAPHICS_TEXTURE_VRAM_BYTES,
+               "font and two-cat cache exceed texture VRAM");
 
 static uint8_t font_texture_pixels[FONT_TEXTURE_SIZE]
     __attribute__((aligned(4)));
@@ -34,7 +40,7 @@ static bool readExactFile(const char *path, void *destination, size_t size)
 
 static bool loadRuntimeFont(void)
 {
-    if (JIMIDOO_FONT_ATLAS_HEIGHT > FONT_TEXTURE_HEIGHT ||
+    if (JIMIDOO_FONT_ATLAS_HEIGHT > JIMIDOO_FONT_TEXTURE_HEIGHT ||
         !readExactFile("nitro:/fonts/jimidou_font.a5i3.bin",
                        font_texture_pixels, sizeof(font_texture_pixels)) ||
         !readExactFile("nitro:/fonts/jimidou_font.pal.bin",
@@ -45,7 +51,7 @@ static bool loadRuntimeFont(void)
     glGenTextures(1, &font_texture_id);
     glBindTexture(0, font_texture_id);
     if (!glTexImageNtr2D(GL_RGB8_A5, JIMIDOO_FONT_ATLAS_WIDTH,
-                         FONT_TEXTURE_HEIGHT, TEXGEN_TEXCOORD,
+                         JIMIDOO_FONT_TEXTURE_HEIGHT, TEXGEN_TEXCOORD,
                          font_texture_pixels, NULL) ||
         !glColorTableNtr(FONT_PALETTE_ENTRIES, font_palette)) {
         glDeleteTextures(1, &font_texture_id);

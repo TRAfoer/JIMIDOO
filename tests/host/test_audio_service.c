@@ -170,6 +170,23 @@ int main(void)
     assert(stream_volume == 127);
 
     audioSetMusic(MUSIC_BATTLE);
+    for (int frame = 0; frame < 10; ++frame) {
+        audioUpdate();
+    }
+    unsigned int cancelled_fade_volume = stream_volume;
+    assert(cancelled_fade_volume > 0 && cancelled_fade_volume < 127);
+    audioSetMusic(MUSIC_MENU);
+    for (int frame = 0; frame < 30; ++frame) {
+        unsigned int previous_volume = stream_volume;
+        audioUpdate();
+        assert(stream_volume >= previous_volume);
+        assert(stream_closes == 0);
+        assert(stream_starts == 1);
+        assert(last_music == MUSIC_MENU);
+    }
+    assert(stream_volume == 127);
+
+    audioSetMusic(MUSIC_BATTLE);
     for (int frame = 0; frame < 29; ++frame) {
         audioUpdate();
         assert(stream_starts == 1);

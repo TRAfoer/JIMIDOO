@@ -23,6 +23,7 @@ TitleSceneInitStatus titleSceneInit(bool audio_available)
     title_language = LANG_ZH_CN;
     title_audio_muted = !audio_available;
     textSetLanguage(title_language);
+    catTexturesReset();
     TitleSceneInitStatus status = titleSceneStatusForCatLoad(
         catTextureLoad(CAT_ORANGE, CAT_ACTION_IDLE));
     if (!titleSceneCanRun(status)) {

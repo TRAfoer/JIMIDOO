@@ -19,6 +19,13 @@ typedef enum CatAction {
 } CatAction;
 
 #define CAT_TEXTURE_COUNT (CAT_COUNT * CAT_ACTION_COUNT)
+#define CAT_TEXTURE_IMAGE_BYTES (128U * 128U)
+#define CAT_TEXTURE_CACHE_CAT_LIMIT 2U
+#define GRAPHICS_FONT_TEXTURE_MAX_BYTES (128U * 1024U)
+#define GRAPHICS_TEXTURE_VRAM_BYTES (3U * 128U * 1024U)
+#define GRAPHICS_TEXTURE_MAX_RESIDENT_BYTES \
+    (GRAPHICS_FONT_TEXTURE_MAX_BYTES + \
+     CAT_TEXTURE_CACHE_CAT_LIMIT * CAT_ACTION_COUNT * CAT_TEXTURE_IMAGE_BYTES)
 
 static inline int catTextureIndex(CatId cat, CatAction action)
 {
@@ -45,6 +52,7 @@ void graphicsTextDrawSub(int x, int y, unsigned int scale, uint16_t color,
 
 bool catTextureLoad(CatId cat, CatAction action);
 bool catTexturesLoad(CatId cat);
+void catTexturesReset(void);
 void catTextureDraw(CatId cat, CatAction action, int x, int y,
                     bool horizontal_flip);
 

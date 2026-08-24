@@ -19,6 +19,11 @@ ATLAS = ROOT / "assets" / "fonts" / "jimidou_font_atlas.png"
 METRICS = ROOT / "include" / "generated" / "jimidou_font_metrics.h"
 RUNTIME_IMAGE = ROOT / "nitrofs" / "fonts" / "jimidou_font.a5i3.bin"
 RUNTIME_PALETTE = ROOT / "nitrofs" / "fonts" / "jimidou_font.pal.bin"
+CAT_IMAGES = ROOT / "nitrofs" / "cats"
+FONT_TEXTURE_LIMIT = 128 * 1024
+TEXTURE_VRAM_LIMIT = 3 * 128 * 1024
+CAT_CACHE_ACTION_LIMIT = 2 * 7
+MANDATORY_RUNTIME_GLYPHS = set("0123456789%+.-/:")
 METRIC = re.compile(
     r"\{ 0x([0-9A-F]{4,6}), (-?\d+), (-?\d+), (-?\d+), (-?\d+), "
     r"(-?\d+), (-?\d+), (-?\d+) \},"
@@ -91,6 +96,16 @@ class FontRuntimeArtifactTest(unittest.TestCase):
 
             image_data = first_image.read_bytes()
             palette_data = first_palette.read_bytes()
+            cat_payload_sizes = sorted(
+                (path.stat().st_size for path in CAT_IMAGES.glob("*.img.bin")),
+                reverse=True,
+            )
+            self.assertEqual(len(cat_payload_sizes), 35)
+            self.assertLessEqual(len(image_data), FONT_TEXTURE_LIMIT)
+            self.assertLessEqual(
+                len(image_data) + sum(cat_payload_sizes[:CAT_CACHE_ACTION_LIMIT]),
+                TEXTURE_VRAM_LIMIT,
+            )
             self.assertEqual(image_data, second_image.read_bytes())
             self.assertEqual(palette_data, second_palette.read_bytes())
             self.assertEqual(image_data, RUNTIME_IMAGE.read_bytes())
@@ -124,6 +139,11 @@ class FontRuntimeArtifactTest(unittest.TestCase):
                 for values in METRIC.findall(fresh_metrics.read_text(encoding="utf-8"))
             ]
             self.assertTrue(metrics)
+            metric_codepoints = {codepoint for codepoint, *_ in metrics}
+            self.assertTrue(
+                {ord(character) for character in MANDATORY_RUNTIME_GLYPHS}
+                <= metric_codepoints
+            )
             for codepoint, x, y, glyph_width, glyph_height, _, _, _ in metrics:
                 if chr(codepoint).isspace():
                     continue

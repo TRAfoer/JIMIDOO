@@ -139,10 +139,10 @@ int main(void)
     last_effect = -1;
     assert(gameplay_random_calls == 0);
 
-    audioPlayHiss(CAT_MAODIE);
-    expect_effect(SFX_MAODIE_COMBINED);
-    audioPlayHiss(CAT_ORANGE);
-    expect_effect(SFX_YOWL);
+    for (CatId cat = CAT_ORANGE; cat < CAT_COUNT; cat = (CatId)(cat + 1)) {
+        audioPlayHiss(cat);
+        expect_effect(SFX_MAODIE_COMBINED);
+    }
 
     audioPlayHeal(CAT_BANANA);
     expect_effect(SFX_BANANA_HEAL);

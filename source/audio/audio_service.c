@@ -135,7 +135,8 @@ void audioPlayScratch(CatId cat)
 
 void audioPlayHiss(CatId cat)
 {
-    audioPlaySfx(cat == CAT_MAODIE ? SFX_ID_MAODIE_COMBINED : SFX_ID_NORMAL_HISS);
+    (void)cat;
+    audioPlaySfx(SFX_ID_MAODIE_COMBINED);
 }
 
 void audioPlayHeal(CatId cat)

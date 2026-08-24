@@ -18,8 +18,8 @@ typedef struct glImage {
 #define GL_RGB256 1
 #define TEXGEN_TEXCOORD 2
 #define GL_TEXTURE_COLOR0_TRANSPARENT 4
-#define GL_FLIP_NONE 0
-#define GL_FLIP_H 1
+#define GL_FLIP_NONE (1 << 0)
+#define GL_FLIP_H (1 << 2)
 #define POLY_CULL_NONE 0
 #define POLY_ALPHA(value) (value)
 #define POLY_ID(value) ((value) << 8)

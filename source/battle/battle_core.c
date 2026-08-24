@@ -1,5 +1,6 @@
 #include "battle.h"
 
+#include <assert.h>
 #include <string.h>
 
 static bool battleSideIsValid(Side side)
@@ -28,6 +29,7 @@ static void battleQueueEvents(BattleState *battle, const BattleEvent *events,
 {
     size_t index;
 
+    assert(battleCanQueueEvents(battle, event_count));
     for (index = 0u; index < event_count; ++index) {
         battle->pending_events[battle->pending_event_count++] = events[index];
     }
@@ -153,6 +155,9 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
                   size_t event_capacity)
 {
     size_t event_count;
+    size_t direct_event_count;
+    size_t first_queued_event;
+    size_t queued_event_count;
     BattleEvent frame_events[SIDE_COUNT];
     Side side;
 
@@ -160,30 +165,19 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
         return 0u;
     }
 
-    if (battle->pending_event_count > 0u) {
-        return battleFlushEvents(battle, events, event_capacity);
+    if (event_capacity == 0u) {
+        battle->pending_event_count = 0u;
+        event_count = 0u;
+    } else {
+        event_count = battleFlushEvents(battle, events, event_capacity);
     }
     if (battle->finished) {
-        return 0u;
+        return event_count;
     }
 
-    event_count = 0u;
-    for (side = SIDE_PLAYER; side < SIDE_COUNT; ++side) {
-        const FighterState *fighter = &battle->fighter[side];
-        uint32_t next_frame = fighter->channel_frames + 1u;
-
-        if ((fighter->channel == CHANNEL_YOWL &&
-             next_frame % BATTLE_RAGE_TICK_FRAMES == 0u) ||
-            (fighter->channel == CHANNEL_HEAL &&
-             next_frame % BATTLE_HEAL_TICK_FRAMES == 0u)) {
-            ++event_count;
-        }
-    }
-    if (!battleCanQueueEvents(battle, event_count)) {
-        return 0u;
-    }
-
-    event_count = 0u;
+    direct_event_count = event_count;
+    first_queued_event = 0u;
+    queued_event_count = 0u;
     for (side = SIDE_PLAYER; side < SIDE_COUNT; ++side) {
         FighterState *fighter = &battle->fighter[side];
         const FighterSpec *spec = &battle->spec[side];
@@ -207,11 +201,11 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
             if (fighter->rage > spec->rage_cap) {
                 fighter->rage = spec->rage_cap;
             }
-            frame_events[event_count].type = EVENT_RAGE;
-            frame_events[event_count].source = side;
-            frame_events[event_count].target = side;
-            frame_events[event_count].amount = fighter->rage - old_rage;
-            ++event_count;
+            frame_events[queued_event_count].type = EVENT_RAGE;
+            frame_events[queued_event_count].source = side;
+            frame_events[queued_event_count].target = side;
+            frame_events[queued_event_count].amount = fighter->rage - old_rage;
+            ++queued_event_count;
         } else if (fighter->channel == CHANNEL_HEAL &&
                    fighter->channel_frames % BATTLE_HEAL_TICK_FRAMES == 0u) {
             int old_hp = fighter->hp;
@@ -220,14 +214,25 @@ size_t battleTick(BattleState *battle, BattleEvent *events,
             if (fighter->hp > spec->max_hp) {
                 fighter->hp = spec->max_hp;
             }
-            frame_events[event_count].type = EVENT_HEAL;
-            frame_events[event_count].source = side;
-            frame_events[event_count].target = side;
-            frame_events[event_count].amount = fighter->hp - old_hp;
-            ++event_count;
+            frame_events[queued_event_count].type = EVENT_HEAL;
+            frame_events[queued_event_count].source = side;
+            frame_events[queued_event_count].target = side;
+            frame_events[queued_event_count].amount = fighter->hp - old_hp;
+            ++queued_event_count;
         }
     }
 
-    battleQueueEvents(battle, frame_events, event_count);
-    return battleFlushEvents(battle, events, event_capacity);
+    if (event_capacity == 0u) {
+        return 0u;
+    }
+
+    while (queued_event_count > 0u && direct_event_count < event_capacity) {
+        events[direct_event_count++] = frame_events[first_queued_event++];
+        --queued_event_count;
+    }
+    if (queued_event_count > 0u) {
+        battleQueueEvents(battle, &frame_events[first_queued_event],
+                          queued_event_count);
+    }
+    return direct_event_count;
 }

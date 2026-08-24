@@ -11,8 +11,15 @@ enum {
     BATTLE_FPS = 60,
     BATTLE_RAGE_TICK_FRAMES = BATTLE_FPS / 2,
     BATTLE_HEAL_TICK_FRAMES = BATTLE_FPS,
-    BATTLE_PENDING_EVENT_CAPACITY = 8
+    /* Five events are reachable before normal delivery; retain Task 2 headroom. */
+    BATTLE_PENDING_EVENT_CAPACITY = 16
 };
+
+/*
+ * A nonzero event capacity preserves ordered events for later delivery. Calling
+ * battleTick with a zero event capacity intentionally discards events while
+ * still advancing one simulation frame.
+ */
 
 typedef enum Side {
     SIDE_PLAYER,

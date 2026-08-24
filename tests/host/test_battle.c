@@ -180,7 +180,7 @@ static void test_tiny_buffer_eventually_delivers_two_scratches_and_battle_end(vo
     assert(battleTick(&battle, &event, 1u) == 0u);
 }
 
-static void test_tiny_buffer_preserves_simultaneous_channel_events_before_next_frame(void)
+static void test_tiny_buffer_delivers_simultaneous_channel_events_without_losing_frames(void)
 {
     BattleState battle;
     BattleEvent event;
@@ -199,11 +199,36 @@ static void test_tiny_buffer_preserves_simultaneous_channel_events_before_next_f
 
     assert(battleTick(&battle, &event, 1u) == 1u);
     assert(event.type == EVENT_RAGE && event.source == SIDE_AI);
-    assert(battle.fighter[SIDE_PLAYER].channel_frames == 30u);
-    assert(battle.fighter[SIDE_AI].channel_frames == 30u);
-    assert(battleTick(&battle, &event, 1u) == 0u);
     assert(battle.fighter[SIDE_PLAYER].channel_frames == 31u);
     assert(battle.fighter[SIDE_AI].channel_frames == 31u);
+    assert(battleTick(&battle, &event, 1u) == 0u);
+    assert(battle.fighter[SIDE_PLAYER].channel_frames == 32u);
+    assert(battle.fighter[SIDE_AI].channel_frames == 32u);
+}
+
+static void test_no_output_ticks_continue_timing_and_discard_events(void)
+{
+    BattleState battle;
+    unsigned int frame;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_YOWL));
+    battle.fighter[SIDE_PLAYER].stun = 125u;
+    for (frame = 0u; frame < 120u; ++frame) {
+        assert(battleTick(&battle, 0, 0u) == 0u);
+    }
+    assert(battle.fighter[SIDE_PLAYER].cooldown == 0u);
+    assert(battle.fighter[SIDE_PLAYER].stun == 5u);
+    assert(battle.fighter[SIDE_PLAYER].channel_frames == 120u);
+    assert(battle.fighter[SIDE_PLAYER].rage == 20);
+    assert(battle.pending_event_count == 0u);
+
+    for (frame = 0u; frame < 60u; ++frame) {
+        assert(battleTick(&battle, 0, 0u) == 0u);
+    }
+    assert(battle.fighter[SIDE_PLAYER].stun == 0u);
+    assert(battle.fighter[SIDE_PLAYER].channel_frames == 180u);
+    assert(battle.fighter[SIDE_PLAYER].rage == 30);
 }
 
 int main(void)
@@ -218,6 +243,7 @@ int main(void)
     test_pause_freezes_all_timers_and_channels();
     test_death_emits_ordered_events_and_stops_frame_resolution();
     test_tiny_buffer_eventually_delivers_two_scratches_and_battle_end();
-    test_tiny_buffer_preserves_simultaneous_channel_events_before_next_frame();
+    test_tiny_buffer_delivers_simultaneous_channel_events_without_losing_frames();
+    test_no_output_ticks_continue_timing_and_discard_events();
     return 0;
 }

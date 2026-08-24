@@ -13,7 +13,7 @@ endif
 
 MSVC_SETUP = $(if $(filter __PATH__,$(VCVARS)),,call "$(VCVARS)" >nul && )
 
-TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_texture_cache.exe test_font_layout.exe test_scene_init.exe
+TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_texture_cache.exe test_font_layout.exe test_scene_init.exe test_title_scene_draw.exe
 
 .PHONY: all clean host-test test_localization
 
@@ -28,6 +28,7 @@ host-test: $(TESTS)
 	./test_texture_cache.exe
 	./test_font_layout.exe
 	./test_scene_init.exe
+	./test_title_scene_draw.exe
 	& "$(PYTHON)" test_font_assets.py
 	& "$(PYTHON)" test_font_runtime_assets.py
 	& "$(PYTHON)" test_asset_manifest.py
@@ -62,6 +63,9 @@ test_font_layout.exe: test_font_layout.c ../../include/font_layout.h ../../inclu
 
 test_scene_init.exe: test_scene_init.c ../../include/ui_scene.h
 	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_scene_init.c ../../source/ui/scene_status.c /Fe:$@'
+
+test_title_scene_draw.exe: test_title_scene_draw.c ../../include/ui_scene.h ../../include/graphics_service.h ../../include/localization.h ../../source/ui/title_scene.c ../../source/ui/scene_status.c stubs/nds.h
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /Istubs /I../../include test_title_scene_draw.c ../../source/ui/title_scene.c ../../source/ui/scene_status.c /Fe:$@'
 
 clean:
 	Remove-Item -Force -ErrorAction SilentlyContinue $(TESTS)

@@ -11,6 +11,7 @@
 static Language title_language;
 static bool title_audio_muted;
 static bool title_initialized;
+static bool title_subscreen_dirty;
 
 static int centeredTextX(const char *text, unsigned int scale)
 {
@@ -20,6 +21,7 @@ static int centeredTextX(const char *text, unsigned int scale)
 TitleSceneInitStatus titleSceneInit(bool audio_available)
 {
     title_initialized = false;
+    title_subscreen_dirty = false;
     title_language = LANG_ZH_CN;
     title_audio_muted = !audio_available;
     textSetLanguage(title_language);
@@ -31,6 +33,7 @@ TitleSceneInitStatus titleSceneInit(bool audio_available)
     }
 
     title_initialized = true;
+    title_subscreen_dirty = true;
     return TITLE_SCENE_INIT_READY;
 }
 
@@ -42,6 +45,7 @@ void titleSceneUpdate(uint32_t keys_down)
     if ((keys_down & KEY_SELECT) != 0) {
         title_language = title_language == LANG_ZH_CN ? LANG_EN : LANG_ZH_CN;
         textSetLanguage(title_language);
+        title_subscreen_dirty = true;
     }
 }
 
@@ -58,16 +62,19 @@ void titleSceneDraw(void)
     uint16_t ink = RGB15(4, 3, 8);
     uint16_t panel = RGB15(9, 5, 13);
 
-    graphicsSubClear(RGB15(5, 3, 9));
-    graphicsSubFillRect(12, 18, 232, 156, panel);
-    graphicsSubFillRect(12, 18, 232, 3, gold);
-    graphicsTextDrawSub(centeredTextX(title, FONT_SCALE_ONE), 38,
-                        FONT_SCALE_ONE, cream, title);
-    graphicsTextDrawSub(centeredTextX(toggle, FONT_SCALE_HALF), 104,
-                        FONT_SCALE_HALF, gold, toggle);
-    if (title_audio_muted) {
-        graphicsTextDrawSub(centeredTextX(muted, FONT_SCALE_HALF), 142,
-                            FONT_SCALE_HALF, gold, muted);
+    if (title_subscreen_dirty) {
+        graphicsSubClear(RGB15(5, 3, 9));
+        graphicsSubFillRect(12, 18, 232, 156, panel);
+        graphicsSubFillRect(12, 18, 232, 3, gold);
+        graphicsTextDrawSub(centeredTextX(title, FONT_SCALE_ONE), 38,
+                            FONT_SCALE_ONE, cream, title);
+        graphicsTextDrawSub(centeredTextX(toggle, FONT_SCALE_HALF), 104,
+                            FONT_SCALE_HALF, gold, toggle);
+        if (title_audio_muted) {
+            graphicsTextDrawSub(centeredTextX(muted, FONT_SCALE_HALF), 142,
+                                FONT_SCALE_HALF, gold, muted);
+        }
+        title_subscreen_dirty = false;
     }
 
     graphicsFrameBegin();

@@ -4,12 +4,18 @@
 #include <assert.h>
 #include <stddef.h>
 
-static const FighterSpec orange = { 60, 15, 5, 15, 100, 120, 30, 30, 0 };
-static const FighterSpec tabby = { 65, 16, 5, 12, 100, 120, 30, 30, 0 };
+static const FighterSpec orange = { 60, 15, 5, 15, 100, 120, 30, 30, 40 };
+static const FighterSpec tabby = { 65, 16, 5, 12, 100, 120, 30, 30, 40 };
 
 typedef struct ForcedRoll {
     uint16_t value;
 } ForcedRoll;
+
+typedef struct QueuedRoll {
+    uint16_t values[3];
+    size_t value_count;
+    size_t call_count;
+} QueuedRoll;
 
 static uint16_t forcedRandom(void *context, uint16_t upper_exclusive)
 {
@@ -27,6 +33,30 @@ static void force_roll(BattleState *battle, ForcedRoll *roll, uint16_t value)
     battle->random_context = roll;
 }
 
+static uint16_t queuedRandom(void *context, uint16_t upper_exclusive)
+{
+    QueuedRoll *roll = context;
+
+    assert(upper_exclusive == 100u);
+    assert(roll->call_count < roll->value_count);
+    return roll->values[roll->call_count++];
+}
+
+static void queue_rolls(BattleState *battle, QueuedRoll *roll,
+                        const uint16_t *values, size_t value_count)
+{
+    size_t index;
+
+    assert(value_count <= sizeof(roll->values) / sizeof(roll->values[0]));
+    for (index = 0u; index < value_count; ++index) {
+        roll->values[index] = values[index];
+    }
+    roll->value_count = value_count;
+    roll->call_count = 0u;
+    battle->random = queuedRandom;
+    battle->random_context = roll;
+}
+
 static void tick(BattleState *battle, unsigned int frames)
 {
     BattleEvent events[4];
@@ -40,6 +70,102 @@ static bool hiss_channel_succeeds(BattleState *battle)
 {
     return battleSubmit(battle, SIDE_PLAYER, CMD_HISS) &&
            battle->fighter[SIDE_AI].stun == 120u;
+}
+
+static void test_direct_hiss_stops_target_channel_and_emits_one_stop(void)
+{
+    BattleState battle;
+    BattleEvent events[4];
+    ForcedRoll roll;
+    size_t count;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.fighter[SIDE_AI].channel = CHANNEL_YOWL;
+    force_roll(&battle, &roll, 79u);
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_HISS));
+    assert(battle.fighter[SIDE_AI].channel == CHANNEL_NONE);
+    count = battleTick(&battle, events, sizeof(events) / sizeof(events[0]));
+    assert(count == 3u);
+    assert(events[0].type == EVENT_HISS_SUCCESS);
+    assert(events[1].type == EVENT_CHANNEL_STOP &&
+           events[1].source == SIDE_PLAYER && events[1].target == SIDE_AI);
+    assert(events[2].type == EVENT_STUN);
+}
+
+static void test_automatic_counter_stops_defender_channel_and_emits_stop(void)
+{
+    BattleState battle;
+    BattleEvent events[4];
+    ForcedRoll roll;
+    size_t count;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.fighter[SIDE_AI].channel = CHANNEL_HEAL;
+    force_roll(&battle, &roll, 39u);
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(battle.fighter[SIDE_AI].channel == CHANNEL_NONE);
+    count = battleTick(&battle, events, sizeof(events) / sizeof(events[0]));
+    assert(count == 3u);
+    assert(events[0].type == EVENT_HISS_SUCCESS &&
+           events[0].source == SIDE_AI);
+    assert(events[1].type == EVENT_CHANNEL_STOP &&
+           events[1].source == SIDE_AI && events[1].target == SIDE_AI);
+    assert(events[2].type == EVENT_STUN);
+}
+
+static void test_zero_and_hundred_percent_skip_rng_and_preserve_next_roll(void)
+{
+    static const uint16_t rolls[] = { 39u, 99u, 39u };
+    BattleState battle;
+    QueuedRoll roll;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.spec[SIDE_AI].counter_percent = 0;
+    battle.spec[SIDE_AI].dodge_percent = 0;
+    queue_rolls(&battle, &roll, rolls, sizeof(rolls) / sizeof(rolls[0]));
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(roll.call_count == 0u);
+    battle.fighter[SIDE_PLAYER].cooldown = 0u;
+    battle.spec[SIDE_AI].counter_percent = 40;
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(roll.call_count == 1u);
+    assert(battle.fighter[SIDE_PLAYER].stun == 120u);
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.spec[SIDE_PLAYER].warning_percent = 100;
+    queue_rolls(&battle, &roll, rolls, sizeof(rolls) / sizeof(rolls[0]));
+    assert(battleSubmit(&battle, SIDE_AI, CMD_SCRATCH));
+    assert(roll.call_count == 0u);
+    battle.fighter[SIDE_AI].cooldown = 0u;
+    battle.spec[SIDE_AI].dodge_percent = 0;
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(roll.call_count == 1u);
+    assert(battle.fighter[SIDE_PLAYER].stun == 120u);
+}
+
+static void test_defender_counter_base_zero_disables_and_adjusted_base_works(void)
+{
+    static const uint16_t roll_value[] = { 39u };
+    BattleState battle;
+    QueuedRoll roll;
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.spec[SIDE_AI].counter_percent = 0;
+    battle.spec[SIDE_AI].dodge_percent = 0;
+    queue_rolls(&battle, &roll, roll_value,
+                sizeof(roll_value) / sizeof(roll_value[0]));
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(battle.fighter[SIDE_AI].hp == 65 - 15);
+    assert(battle.fighter[SIDE_PLAYER].stun == 0u);
+
+    battleInit(&battle, &orange, &tabby, 1u);
+    battle.fighter[SIDE_PLAYER].rage = 5;
+    battle.spec[SIDE_AI].counter_percent = 55;
+    queue_rolls(&battle, &roll, roll_value,
+                sizeof(roll_value) / sizeof(roll_value[0]));
+    assert(battleSubmit(&battle, SIDE_PLAYER, CMD_SCRATCH));
+    assert(battle.fighter[SIDE_AI].hp == 65);
+    assert(battle.fighter[SIDE_PLAYER].stun == 120u);
 }
 
 static void test_counter_percent_is_clamped_by_rage(void)
@@ -417,6 +543,10 @@ static void test_no_output_ticks_continue_timing_and_discard_events(void)
 
 int main(void)
 {
+    test_direct_hiss_stops_target_channel_and_emits_one_stop();
+    test_automatic_counter_stops_defender_channel_and_emits_stop();
+    test_zero_and_hundred_percent_skip_rng_and_preserve_next_roll();
+    test_defender_counter_base_zero_disables_and_adjusted_base_works();
     test_counter_percent_is_clamped_by_rage();
     test_hiss_channel_probability_boundaries();
     test_ai_warning_lasts_exactly_forty_two_frames();

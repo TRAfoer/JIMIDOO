@@ -101,20 +101,34 @@ static uint16_t battleRoll(BattleState *battle)
 static bool battleRollPercent(BattleState *battle, int percent)
 {
     if (percent < 0) {
-        percent = 0;
-    } else if (percent > 100) {
-        percent = 100;
+        return false;
+    }
+    if (percent == 0) {
+        return false;
+    }
+    if (percent >= 100) {
+        return true;
     }
     return battleRoll(battle) < (uint16_t)percent;
 }
 
+static int battleCounterPercent(int base_percent, int rage)
+{
+    int percent;
+
+    if (base_percent < 0) {
+        base_percent = 0;
+    } else if (base_percent > 100) {
+        base_percent = 100;
+    }
+    percent = base_percent - rage * 3;
+    return percent < 0 ? 0 : percent;
+}
+
 int counterPercent(int rage)
 {
-    int percent = 40 - rage * 3;
+    int percent = battleCounterPercent(40, rage);
 
-    if (percent < 0) {
-        return 0;
-    }
     return percent > 100 ? 100 : percent;
 }
 
@@ -137,10 +151,17 @@ static ScratchResolution battlePrepareScratch(BattleState *battle, Side side,
     ScratchResolution result = { false, false, false, false, 0 };
 
     if (allow_counter && target->cooldown == 0u && target->stun == 0u &&
-        battleRollPercent(battle, counterPercent(actor->rage))) {
+        battleRollPercent(battle,
+                          battleCounterPercent(
+                              battle->spec[target_side].counter_percent,
+                              actor->rage))) {
         result.countered = true;
         battleAddEvent(events, event_count, EVENT_HISS_SUCCESS, target_side,
                        side, 0);
+        if (target->channel != CHANNEL_NONE) {
+            battleAddEvent(events, event_count, EVENT_CHANNEL_STOP,
+                           target_side, target_side, 0);
+        }
         battleAddEvent(events, event_count, EVENT_STUN, target_side, side,
                        BATTLE_STUN_FRAMES);
         return result;
@@ -177,6 +198,7 @@ static void battleApplyScratch(BattleState *battle, Side side,
     FighterState *target = &battle->fighter[target_side];
 
     if (result->countered) {
+        (void)battleStopChannel(target);
         actor->rage = 0;
         actor->stun = BATTLE_STUN_FRAMES;
         return;
@@ -326,6 +348,10 @@ bool battleSubmit(BattleState *battle, Side side, BattleCommand command)
         if (hiss_success) {
             battleAddEvent(action_events, &event_count, EVENT_HISS_SUCCESS,
                            side, target_side, 0);
+            if (target->channel != CHANNEL_NONE) {
+                battleAddEvent(action_events, &event_count,
+                               EVENT_CHANNEL_STOP, side, target_side, 0);
+            }
             battleAddEvent(action_events, &event_count, EVENT_STUN, side,
                            target_side, BATTLE_STUN_FRAMES);
         } else {
@@ -339,6 +365,7 @@ bool battleSubmit(BattleState *battle, Side side, BattleCommand command)
         if (hiss_success) {
             battle->pending_scratch_frames = 0u;
             battle->pending_scratch_source = (Side)SIDE_COUNT;
+            (void)battleStopChannel(target);
             target->rage = 0;
             target->stun = BATTLE_STUN_FRAMES;
         } else {

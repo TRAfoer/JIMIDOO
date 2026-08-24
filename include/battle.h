@@ -11,6 +11,9 @@ enum {
     BATTLE_FPS = 60,
     BATTLE_RAGE_TICK_FRAMES = BATTLE_FPS / 2,
     BATTLE_HEAL_TICK_FRAMES = BATTLE_FPS,
+    BATTLE_WARNING_FRAMES = 42,
+    BATTLE_STUN_FRAMES = BATTLE_FPS * 2,
+    BATTLE_HISS_CHANNEL_PERCENT = 80,
     /* Five events are reachable before normal delivery; retain Task 2 headroom. */
     BATTLE_PENDING_EVENT_CAPACITY = 16
 };
@@ -46,8 +49,17 @@ typedef enum BattleEventType {
     EVENT_DAMAGE,
     EVENT_HEAL,
     EVENT_RAGE,
-    EVENT_BATTLE_END
+    EVENT_BATTLE_END,
+    EVENT_WARNING,
+    EVENT_HISS_SUCCESS,
+    EVENT_HISS_FAIL,
+    EVENT_DODGE,
+    EVENT_HIT,
+    EVENT_CHANNEL_STOP,
+    EVENT_STUN
 } BattleEventType;
+
+typedef uint16_t (*BattleRandom)(void *context, uint16_t upper_exclusive);
 
 typedef struct FighterSpec {
     int max_hp;
@@ -81,6 +93,10 @@ typedef struct BattleState {
     FighterSpec spec[SIDE_COUNT];
     FighterState fighter[SIDE_COUNT];
     BattleRng rng;
+    BattleRandom random;
+    void *random_context;
+    uint32_t pending_scratch_frames;
+    Side pending_scratch_source;
     BattleEvent pending_events[BATTLE_PENDING_EVENT_CAPACITY];
     size_t pending_event_count;
     bool paused;
@@ -88,6 +104,7 @@ typedef struct BattleState {
     Side winner;
 } BattleState;
 
+int counterPercent(int rage);
 void battleInit(BattleState *battle, const FighterSpec *player,
                 const FighterSpec *ai, uint32_t seed);
 bool battleSubmit(BattleState *battle, Side side, BattleCommand command);

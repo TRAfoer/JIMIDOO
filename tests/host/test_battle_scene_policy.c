@@ -135,6 +135,13 @@ static void test_terminal_lifecycle_holds_exactly_sixty_more_frames(void)
     assert(lifecycle.terminal_frames_remaining == 0u);
 }
 
+static void test_post_tick_presentation_compensates_the_animation_tick(void)
+{
+    assert(battleScenePresentationCooldown(120u, false) == 120u);
+    assert(battleScenePresentationCooldown(78u, true) == 79u);
+    assert(battleScenePresentationCooldown(0u, true) == 0u);
+}
+
 int main(void)
 {
     test_automatic_counter_presents_defender_hiss_once();
@@ -145,5 +152,6 @@ int main(void)
     test_counter_cancels_warning_without_scratch_presentation();
     test_rejected_action_has_no_presentation_or_route_state();
     test_terminal_lifecycle_holds_exactly_sixty_more_frames();
+    test_post_tick_presentation_compensates_the_animation_tick();
     return 0;
 }

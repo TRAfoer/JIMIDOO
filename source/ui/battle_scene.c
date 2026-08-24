@@ -150,6 +150,16 @@ bool battleSceneLifecycleAfterFrame(BattleSceneLifecycle *lifecycle,
     return lifecycle->terminal_frames_remaining != 0u;
 }
 
+uint32_t battleScenePresentationCooldown(uint32_t cooldown_frames,
+                                         bool tick_already_advanced)
+{
+    if (tick_already_advanced && cooldown_frames != 0u &&
+        cooldown_frames != UINT32_MAX) {
+        return cooldown_frames + 1u;
+    }
+    return cooldown_frames;
+}
+
 #ifdef __NDS__
 
 #include <stddef.h>
@@ -217,18 +227,23 @@ static void playActionAudio(CatId cat, BattleCommand command)
     }
 }
 
-static void presentAction(BattleAnimation *animation,
+static void presentAction(const BattleState *battle, BattleAnimation *animation,
                           const BattlePresentation *presentation,
-                          CatId player_cat, CatId enemy_cat)
+                          CatId player_cat, CatId enemy_cat,
+                          bool tick_already_advanced)
 {
     CatId cat;
 
-    if (presentation == NULL || presentation->command == CMD_NONE) {
+    if (battle == NULL || presentation == NULL ||
+        presentation->command == CMD_NONE) {
         return;
     }
     cat = presentation->side == SIDE_PLAYER ? player_cat : enemy_cat;
     battleAnimationOnAction(animation, presentation->side,
-                            presentation->command);
+                            presentation->command,
+                            battleScenePresentationCooldown(
+                                battle->fighter[presentation->side].cooldown,
+                                tick_already_advanced));
     playActionAudio(cat, presentation->command);
 }
 
@@ -244,7 +259,8 @@ static void submitAction(BattleState *battle, BattleAnimation *animation,
     BattlePresentation presentation = battleSceneRouteSubmitted(
         route, side, command, accepted, deferred);
 
-    presentAction(animation, &presentation, player_cat, enemy_cat);
+    presentAction(battle, animation, &presentation, player_cat, enemy_cat,
+                  false);
 }
 
 static void routeResultAudio(const BattleEvent *events, size_t event_count,
@@ -324,8 +340,9 @@ BattleResult battleSceneRun(const BattleSetup *setup)
                 for (presentation_index = 0u;
                      presentation_index < presentation_count;
                      ++presentation_index) {
-                    presentAction(&animation, &presentations[presentation_index],
-                                  setup->player_cat, setup->enemy_cat);
+                    presentAction(&battle, &animation,
+                                  &presentations[presentation_index],
+                                  setup->player_cat, setup->enemy_cat, true);
                 }
                 battleAnimationOnEvents(&animation, events, event_count);
                 routeResultAudio(events, event_count, setup->player_cat,

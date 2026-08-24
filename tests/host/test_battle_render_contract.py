@@ -21,6 +21,12 @@ class BattleRenderContractTest(unittest.TestCase):
         source = ANIMATION.read_text(encoding="utf-8")
         self.assertIn("battleAnimationHorizontalFlip(side)", source)
 
+    def test_scene_passes_remaining_cooldown_to_action_presentation(self) -> None:
+        scene = (ROOT / "source" / "ui" / "battle_scene.c").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("battle->fighter[presentation->side].cooldown", scene)
+
 
 if __name__ == "__main__":
     unittest.main()

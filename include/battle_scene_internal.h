@@ -53,8 +53,9 @@ enum {
 
 typedef struct BattleFighterAnimation {
     CatAction action;
-    uint8_t frames;
-    uint8_t duration;
+    uint32_t pose_frames;
+    uint8_t effect_frames;
+    uint8_t effect_duration;
     uint8_t flash_frames;
     uint8_t afterimage_frames;
     int8_t dodge_direction;
@@ -87,12 +88,14 @@ size_t battleSceneRouteEvents(BattleSceneRouteState *route,
 void battleSceneLifecycleInit(BattleSceneLifecycle *lifecycle);
 bool battleSceneLifecycleAfterFrame(BattleSceneLifecycle *lifecycle,
                                     bool battle_finished);
+uint32_t battleScenePresentationCooldown(uint32_t cooldown_frames,
+                                         bool tick_already_advanced);
 void battleHudInit(BattleHud *hud);
 void battleHudDraw(BattleHud *hud, const BattleState *battle);
 
 void battleAnimationInit(BattleAnimation *animation);
 void battleAnimationOnAction(BattleAnimation *animation, Side side,
-                             BattleCommand command);
+                             BattleCommand command, uint32_t cooldown_frames);
 void battleAnimationOnEvents(BattleAnimation *animation,
                              const BattleEvent *events, size_t event_count);
 void battleAnimationTick(BattleAnimation *animation, bool paused);

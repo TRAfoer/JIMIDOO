@@ -41,11 +41,12 @@ static CatAction actionImage(BattleCommand command)
 }
 
 static void setAnimation(BattleFighterAnimation *fighter, CatAction action,
-                         uint8_t duration)
+                         uint32_t pose_duration, uint8_t effect_duration)
 {
     fighter->action = action;
-    fighter->frames = duration;
-    fighter->duration = duration;
+    fighter->pose_frames = pose_duration;
+    fighter->effect_frames = effect_duration;
+    fighter->effect_duration = effect_duration;
 }
 
 void battleAnimationInit(BattleAnimation *animation)
@@ -59,13 +60,15 @@ void battleAnimationInit(BattleAnimation *animation)
 }
 
 void battleAnimationOnAction(BattleAnimation *animation, Side side,
-                             BattleCommand command)
+                             BattleCommand command, uint32_t cooldown_frames)
 {
     if (animation == NULL || !animationSideIsValid(side) ||
         command == CMD_NONE) {
         return;
     }
     setAnimation(&animation->fighter[side], actionImage(command),
+                 cooldown_frames > ACTION_ANIMATION_FRAMES ? cooldown_frames :
+                                                            ACTION_ANIMATION_FRAMES,
                  ACTION_ANIMATION_FRAMES);
     if (command == CMD_SCRATCH) {
         animation->fighter[side].afterimage_frames = 6;
@@ -104,7 +107,8 @@ void battleAnimationOnEvents(BattleAnimation *animation,
             case EVENT_HIT:
             case EVENT_STUN:
                 setAnimation(&animation->fighter[event->target],
-                             CAT_ACTION_HIT, HIT_ANIMATION_FRAMES);
+                             CAT_ACTION_HIT, HIT_ANIMATION_FRAMES,
+                             HIT_ANIMATION_FRAMES);
                 animation->fighter[event->target].flash_frames = 6;
                 break;
             case EVENT_DAMAGE:
@@ -113,7 +117,8 @@ void battleAnimationOnEvents(BattleAnimation *animation,
                 break;
             case EVENT_HEAL:
                 setAnimation(&animation->fighter[event->source],
-                             CAT_ACTION_HEAL, ACTION_ANIMATION_FRAMES);
+                             CAT_ACTION_HEAL, ACTION_ANIMATION_FRAMES,
+                             ACTION_ANIMATION_FRAMES);
                 showCaption(animation, EVENT_HEAL, event->source,
                             event->amount);
                 break;
@@ -121,7 +126,8 @@ void battleAnimationOnEvents(BattleAnimation *animation,
                 animation->fighter[event->target].dodge_direction =
                     event->target == SIDE_PLAYER ? -1 : 1;
                 setAnimation(&animation->fighter[event->target],
-                             CAT_ACTION_IDLE, DODGE_ANIMATION_FRAMES);
+                             CAT_ACTION_IDLE, DODGE_ANIMATION_FRAMES,
+                             DODGE_ANIMATION_FRAMES);
                 showCaption(animation, EVENT_DODGE, event->target, 0);
                 break;
             case EVENT_HISS_SUCCESS:
@@ -130,8 +136,9 @@ void battleAnimationOnEvents(BattleAnimation *animation,
                 break;
             case EVENT_BATTLE_END:
                 animation->fighter[event->target].action = CAT_ACTION_DEAD;
-                animation->fighter[event->target].frames = 0;
-                animation->fighter[event->target].duration = 0;
+                animation->fighter[event->target].pose_frames = 0u;
+                animation->fighter[event->target].effect_frames = 0u;
+                animation->fighter[event->target].effect_duration = 0u;
                 break;
             default:
                 break;
@@ -141,13 +148,16 @@ void battleAnimationOnEvents(BattleAnimation *animation,
 
 static void tickFighter(BattleFighterAnimation *fighter)
 {
-    if (fighter->frames > 0u) {
-        --fighter->frames;
-        if (fighter->frames == 0u && fighter->action != CAT_ACTION_DEAD) {
+    if (fighter->pose_frames > 0u) {
+        --fighter->pose_frames;
+        if (fighter->pose_frames == 0u &&
+            fighter->action != CAT_ACTION_DEAD) {
             fighter->action = CAT_ACTION_IDLE;
-            fighter->duration = 0u;
             fighter->dodge_direction = 0;
         }
+    }
+    if (fighter->effect_frames > 0u) {
+        --fighter->effect_frames;
     }
     if (fighter->flash_frames > 0u) {
         --fighter->flash_frames;
@@ -189,18 +199,18 @@ static int animationProgressOffset(const BattleFighterAnimation *fighter,
     int elapsed;
     int direction = side == SIDE_PLAYER ? 1 : -1;
 
-    if (fighter->frames == 0u || fighter->duration == 0u) {
+    if (fighter->effect_frames == 0u || fighter->effect_duration == 0u) {
         return 0;
     }
-    elapsed = fighter->duration - fighter->frames;
+    elapsed = fighter->effect_duration - fighter->effect_frames;
     if (fighter->dodge_direction != 0) {
-        int triangular = elapsed <= fighter->duration / 2 ? elapsed :
-                         fighter->duration - elapsed;
+        int triangular = elapsed <= fighter->effect_duration / 2 ? elapsed :
+                         fighter->effect_duration - elapsed;
         return fighter->dodge_direction * triangular * 2;
     }
     if (fighter->action == CAT_ACTION_SCRATCH) {
-        int triangular = elapsed <= fighter->duration / 2 ? elapsed :
-                         fighter->duration - elapsed;
+        int triangular = elapsed <= fighter->effect_duration / 2 ? elapsed :
+                         fighter->effect_duration - elapsed;
         return direction * triangular * 2;
     }
     if (fighter->action == CAT_ACTION_HIT) {
@@ -219,7 +229,7 @@ static CatAction visibleAction(const BattleFighterAnimation *fighter,
     if (state->hp <= 0 || fighter->action == CAT_ACTION_DEAD) {
         return CAT_ACTION_DEAD;
     }
-    if (fighter->frames != 0u) {
+    if (fighter->pose_frames != 0u) {
         return fighter->action;
     }
     if (state->channel == CHANNEL_YOWL) {
@@ -236,12 +246,12 @@ static unsigned int animationScale(const BattleFighterAnimation *fighter)
     int elapsed;
     int triangular;
 
-    if (fighter->frames == 0u || fighter->duration == 0u) {
+    if (fighter->effect_frames == 0u || fighter->effect_duration == 0u) {
         return FONT_SCALE_ONE;
     }
-    elapsed = fighter->duration - fighter->frames;
-    triangular = elapsed <= fighter->duration / 2 ? elapsed :
-                 fighter->duration - elapsed;
+    elapsed = fighter->effect_duration - fighter->effect_frames;
+    triangular = elapsed <= fighter->effect_duration / 2 ? elapsed :
+                 fighter->effect_duration - elapsed;
     if (fighter->action == CAT_ACTION_HISS ||
         fighter->action == CAT_ACTION_YOWL ||
         fighter->action == CAT_ACTION_HEAL) {

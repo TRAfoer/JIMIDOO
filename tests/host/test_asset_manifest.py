@@ -31,13 +31,13 @@ class AssetManifestTest(unittest.TestCase):
         self.assertEqual(
             manifest["actions"],
             {
-                "1": "yowl",
+                "1": "idle",
                 "2": "hiss",
                 "3": "scratch",
-                "4": "hit",
+                "4": "yowl",
                 "5": "heal",
                 "6": "dead",
-                "7": "idle",
+                "7": "hit",
             },
         )
         orientation = manifest.get("mirror_to_canonical_right")

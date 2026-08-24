@@ -8,13 +8,13 @@
     "e": "banana"
   },
   "actions": {
-    "1": "yowl",
+    "1": "idle",
     "2": "hiss",
     "3": "scratch",
-    "4": "hit",
+    "4": "yowl",
     "5": "heal",
     "6": "dead",
-    "7": "idle"
+    "7": "hit"
   },
   "mirror_to_canonical_right": {
     "a": {"1": false, "2": false, "3": false, "4": false, "5": false, "6": true, "7": false},

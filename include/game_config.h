@@ -3,6 +3,13 @@
 
 #define GAME_FPS 60
 
+/* Integer weights used by the deterministic combat AI. */
+#define AI_WEIGHT_LETHAL_SCRATCH 10000
+#define AI_WEIGHT_INTERRUPT_ACTIVE_CHANNEL 300
+#define AI_WEIGHT_LOW_RAGE_YOWL 200
+#define AI_WEIGHT_MISSING_HP_HEAL 20
+#define AI_WEIGHT_THREAT_SUPPRESSION 200
+
 typedef enum CatId {
     CAT_ORANGE,
     CAT_TABBY,

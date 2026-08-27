@@ -301,13 +301,59 @@ static void aiPolicyDistribute(AiTickets *tickets, const AiWeights *weights,
     }
 }
 
+static void aiPolicyDistributeCapped(AiTickets *tickets,
+                                     const AiWeights *weights,
+                                     uint16_t available,
+                                     BattleCommand excluded, uint16_t cap)
+{
+    while (available != 0u) {
+        uint64_t total = 0u;
+        uint16_t allocated = 0u;
+        BattleCommand command;
+
+        for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
+            if (command != excluded && weights->value[command] != 0u &&
+                tickets->value[command] < cap) {
+                total = aiPolicyAddSaturating(total, weights->value[command]);
+            }
+        }
+        if (total == 0u) {
+            return;
+        }
+        for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
+            uint16_t share;
+            uint16_t capacity;
+
+            if (command == excluded || weights->value[command] == 0u ||
+                tickets->value[command] >= cap) {
+                continue;
+            }
+            share = aiPolicyShare(weights->value[command], total, available);
+            capacity = (uint16_t)(cap - tickets->value[command]);
+            if (share > capacity) {
+                share = capacity;
+            }
+            tickets->value[command] = (uint16_t)(tickets->value[command] + share);
+            allocated = (uint16_t)(allocated + share);
+        }
+        for (command = CMD_HISS; available > allocated &&
+                                     command <= CMD_HEAL; ++command) {
+            if (command != excluded && weights->value[command] != 0u &&
+                tickets->value[command] < cap) {
+                ++tickets->value[command];
+                ++allocated;
+            }
+        }
+        available = (uint16_t)(available - allocated);
+    }
+}
+
 AiTickets aiPolicyTickets(AiWeights weights, uint16_t cap_percent)
 {
     AiTickets tickets = { { 0u } };
     uint16_t legal_count = 0u;
     uint16_t cap;
     BattleCommand command;
-    BattleCommand largest = CMD_NONE;
 
     for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
         if (weights.value[command] != 0u) {
@@ -335,16 +381,16 @@ AiTickets aiPolicyTickets(AiWeights weights, uint16_t cap_percent)
 
     cap = cap_percent > 100u ? AI_TICKET_TOTAL :
           (uint16_t)(cap_percent * 100u);
-    for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
-        if (largest == CMD_NONE || tickets.value[command] > tickets.value[largest]) {
-            largest = command;
-        }
+    if ((uint32_t)legal_count * cap < AI_TICKET_TOTAL) {
+        cap = (uint16_t)((AI_TICKET_TOTAL + legal_count - 1u) / legal_count);
     }
-    if (largest != CMD_NONE && tickets.value[largest] > cap) {
-        uint16_t excess = (uint16_t)(tickets.value[largest] - cap);
+    for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
+        if (tickets.value[command] > cap) {
+            uint16_t excess = (uint16_t)(tickets.value[command] - cap);
 
-        tickets.value[largest] = cap;
-        aiPolicyDistribute(&tickets, &weights, excess, largest);
+            tickets.value[command] = cap;
+            aiPolicyDistributeCapped(&tickets, &weights, excess, command, cap);
+        }
     }
     return tickets;
 }

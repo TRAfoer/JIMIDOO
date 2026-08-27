@@ -265,6 +265,27 @@ static void test_ticket_normalization_is_capped_and_ordered(void)
     assert(tickets.value[CMD_HISS] == AI_TICKET_TOTAL);
 }
 
+static void test_feasible_caps_limit_every_action_and_infeasible_caps_balance(void)
+{
+    AiWeights adversarial = { { 0u, UINT64_C(500), UINT64_C(499),
+                                UINT64_C(1), 0u } };
+    AiWeights two_actions = { { 0u, UINT64_C(9), UINT64_C(1), 0u, 0u } };
+    AiTickets tickets;
+
+    tickets = aiPolicyTickets(adversarial, 35u);
+    assert(ticket_total(tickets) == AI_TICKET_TOTAL);
+    assert(tickets.value[CMD_HISS] == 3500u);
+    assert(tickets.value[CMD_SCRATCH] == 3500u);
+    assert(tickets.value[CMD_YOWL] == 3000u);
+    assert(largest_ticket(tickets) == 3500u);
+
+    tickets = aiPolicyTickets(two_actions, 35u);
+    assert(ticket_total(tickets) == AI_TICKET_TOTAL);
+    assert(tickets.value[CMD_HISS] == 5000u);
+    assert(tickets.value[CMD_SCRATCH] == 5000u);
+    assert(largest_ticket(tickets) == 5000u);
+}
+
 static void test_brain_selection_never_consumes_combat_rng(void)
 {
     BattleState battle = battle_fixture();
@@ -296,6 +317,7 @@ int main(void)
     test_memory_responses_use_recency_and_crisis_scaling();
     test_repeat_penalties_preserve_decisive_actions();
     test_ticket_normalization_is_capped_and_ordered();
+    test_feasible_caps_limit_every_action_and_infeasible_caps_balance();
     test_brain_selection_never_consumes_combat_rng();
     return 0;
 }

@@ -58,6 +58,30 @@ BattlePresentation battleSceneRouteSubmitted(BattleSceneRouteState *route,
     return presentation;
 }
 
+bool battleSceneSubmit(BattleState *battle, BattleSceneRouteState *route,
+                       AiBrain *brain, Side side, BattleCommand command,
+                       BattlePresentation *presentation)
+{
+    BattlePresentation routed = noPresentation();
+    bool deferred;
+
+    if (presentation != NULL) {
+        *presentation = routed;
+    }
+    if (command == CMD_NONE || !battleSubmit(battle, side, command)) {
+        return false;
+    }
+    aiBrainRecordAccepted(brain, side, command);
+    deferred = command == CMD_SCRATCH &&
+               battle->pending_scratch_frames != 0u &&
+               battle->pending_scratch_source == side;
+    routed = battleSceneRouteSubmitted(route, side, command, true, deferred);
+    if (presentation != NULL) {
+        *presentation = routed;
+    }
+    return true;
+}
+
 static void appendPresentation(BattlePresentation *presentations,
                                size_t presentation_capacity,
                                size_t *presentation_count, Side side,
@@ -249,22 +273,6 @@ static void presentAction(const BattleState *battle, BattleAnimation *animation,
     playActionAudio(cat, presentation->command);
 }
 
-static void submitAction(BattleState *battle, BattleAnimation *animation,
-                         BattleSceneRouteState *route, Side side,
-                         CatId player_cat, CatId enemy_cat,
-                         BattleCommand command)
-{
-    bool accepted = command != CMD_NONE && battleSubmit(battle, side, command);
-    bool deferred = accepted && command == CMD_SCRATCH &&
-                    battle->pending_scratch_frames != 0u &&
-                    battle->pending_scratch_source == side;
-    BattlePresentation presentation = battleSceneRouteSubmitted(
-        route, side, command, accepted, deferred);
-
-    presentAction(battle, animation, &presentation, player_cat, enemy_cat,
-                  false);
-}
-
 static void routeResultAudio(const BattleEvent *events, size_t event_count,
                              CatId player_cat, CatId enemy_cat)
 {
@@ -285,6 +293,7 @@ BattleResult battleSceneRun(const BattleSetup *setup)
     BattleAnimation animation;
     BattleSceneRouteState route;
     BattleSceneLifecycle lifecycle;
+    AiBrain brain;
     BattleEvent events[BATTLE_PENDING_EVENT_CAPACITY];
     bool keep_running = true;
     BattleBackgroundId background;
@@ -303,6 +312,7 @@ BattleResult battleSceneRun(const BattleSetup *setup)
     }
 
     battleInit(&battle, &setup->player, &setup->enemy, setup->seed);
+    aiBrainInit(&brain, setup->seed);
     battleHudInit(&hud);
     battleAnimationInit(&animation);
     battleSceneRouteInit(&route);
@@ -319,6 +329,7 @@ BattleResult battleSceneRun(const BattleSetup *setup)
         if (!battle.finished) {
             BattleCommand command;
             BattleCommand ai_command;
+            BattlePresentation submission;
             BattlePresentation presentations[4];
             size_t presentation_count;
             size_t presentation_index;
@@ -331,13 +342,18 @@ BattleResult battleSceneRun(const BattleSetup *setup)
 
             if (!battle.paused) {
                 command = playerCommand(keys_down);
-
-                submitAction(&battle, &animation, &route, SIDE_PLAYER,
-                             setup->player_cat, setup->enemy_cat, command);
-                ai_command = aiChoose(&battle, SIDE_AI, setup->crisis,
-                                      battle.random, battle.random_context);
-                submitAction(&battle, &animation, &route, SIDE_AI,
-                             setup->player_cat, setup->enemy_cat, ai_command);
+                if (battleSceneSubmit(&battle, &route, &brain, SIDE_PLAYER,
+                                      command, &submission)) {
+                    presentAction(&battle, &animation, &submission,
+                                  setup->player_cat, setup->enemy_cat, false);
+                }
+                ai_command = aiBrainTick(&brain, &battle, SIDE_AI,
+                                         setup->crisis);
+                if (battleSceneSubmit(&battle, &route, &brain, SIDE_AI,
+                                      ai_command, &submission)) {
+                    presentAction(&battle, &animation, &submission,
+                                  setup->player_cat, setup->enemy_cat, false);
+                }
                 event_count = battleTick(&battle, events,
                                          BATTLE_PENDING_EVENT_CAPACITY);
                 presentation_count = battleSceneRouteEvents(
@@ -358,8 +374,16 @@ BattleResult battleSceneRun(const BattleSetup *setup)
 
         battleAnimationTick(&animation, battle.paused);
         audioUpdate();
-        battleAnimationDraw(&animation, &battle, setup->player_cat,
-                            setup->enemy_cat);
+        if (setup->debug_ai) {
+            AiDebugSnapshot snapshot;
+
+            aiBrainSnapshot(&brain, &snapshot);
+            battleAnimationDraw(&animation, &battle, setup->player_cat,
+                                setup->enemy_cat, &snapshot);
+        } else {
+            battleAnimationDraw(&animation, &battle, setup->player_cat,
+                                setup->enemy_cat, NULL);
+        }
         keep_running = battleSceneLifecycleAfterFrame(&lifecycle,
                                                       battle.finished);
     }

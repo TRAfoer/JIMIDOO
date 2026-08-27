@@ -32,7 +32,7 @@ const char *textGet(GameTextId id)
     switch (id) {
         case TEXT_DEBUG_TITLE: return "Battle Debug";
         case TEXT_PREBATTLE_CRISIS: return "Crisis Level";
-        case TEXT_DEBUG_BEST_RATE: return "Best-choice rate";
+        case TEXT_DEBUG_ACTION_CAP: return "Action probability cap";
         case TEXT_MENU_BACK: return "Back";
         case TEXT_PREBATTLE_START: return "Start Challenge";
         case TEXT_DEBUG_CONTROLS: return "D-Pad adjust  A start  B back";
@@ -102,6 +102,7 @@ int main(void)
     assert(cat_draw_count == 2u);
     assert(enemy_flip);
     assert(contains(top_text, top_text_count, "25"));
+    assert(contains(top_text, top_text_count, "Action probability cap"));
     assert(contains(top_text, top_text_count, "55%"));
     assert(contains(sub_text, sub_text_count, "-10"));
     assert(contains(sub_text, sub_text_count, "-1"));

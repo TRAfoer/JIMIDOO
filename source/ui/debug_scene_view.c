@@ -71,14 +71,14 @@ void debugSceneDraw(uint8_t crisis, bool redraw_subscreen)
     char percent[8];
     const char *title = textGet(TEXT_DEBUG_TITLE);
     const char *crisis_label = textGet(TEXT_PREBATTLE_CRISIS);
-    const char *rate_label = textGet(TEXT_DEBUG_BEST_RATE);
+    const char *rate_label = textGet(TEXT_DEBUG_ACTION_CAP);
     const char *controls = textGet(TEXT_DEBUG_CONTROLS);
     uint16_t cream = RGB15(31, 29, 23);
     uint16_t gold = RGB15(31, 22, 5);
 
     snprintf(value, sizeof(value), "%u", (unsigned int)crisis);
     snprintf(percent, sizeof(percent), "%u%%",
-             (unsigned int)aiBestActionPercent(crisis));
+             (unsigned int)aiActionProbabilityCap(crisis));
     if (redraw_subscreen) {
         drawSubscreen(crisis);
     }

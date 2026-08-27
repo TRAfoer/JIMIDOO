@@ -5,6 +5,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ai.h"
 #include "battle.h"
 #include "game_config.h"
 #include "graphics_service.h"
@@ -81,6 +82,9 @@ BattlePresentation battleSceneRouteSubmitted(BattleSceneRouteState *route,
                                               BattleCommand command,
                                               bool accepted,
                                               bool scratch_deferred);
+bool battleSceneSubmit(BattleState *battle, BattleSceneRouteState *route,
+                       AiBrain *brain, Side side, BattleCommand command,
+                       BattlePresentation *presentation);
 size_t battleSceneRouteEvents(BattleSceneRouteState *route,
                               const BattleEvent *events, size_t event_count,
                               BattlePresentation *presentations,
@@ -103,6 +107,7 @@ bool battleAnimationFighterVisible(uint8_t flash_frames, uint32_t frame);
 bool battleAnimationHorizontalFlip(Side side);
 void battleAnimationDraw(const BattleAnimation *animation,
                          const BattleState *battle, CatId player_cat,
-                         CatId enemy_cat);
+                         CatId enemy_cat,
+                         const AiDebugSnapshot *debug_ai);
 
 #endif

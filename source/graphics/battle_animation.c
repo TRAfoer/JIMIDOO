@@ -351,9 +351,80 @@ static void drawCaption(const BattleAnimation *animation)
     }
 }
 
+static GameTextId profileTextId(AiProfile profile)
+{
+    static const GameTextId profile_text[AI_PROFILE_COUNT] = {
+        TEXT_AI_PROFILE_AGGRESSIVE,
+        TEXT_AI_PROFILE_COUNTER,
+        TEXT_AI_PROFILE_RAGE,
+        TEXT_AI_PROFILE_SURVIVAL,
+        TEXT_AI_PROFILE_OPPORTUNIST,
+        TEXT_AI_PROFILE_TRICKSTER
+    };
+
+    if ((unsigned int)profile >= (unsigned int)AI_PROFILE_COUNT) {
+        profile = AI_PROFILE_AGGRESSIVE;
+    }
+    return profile_text[profile];
+}
+
+static char commandKey(BattleCommand command)
+{
+    switch (command) {
+        case CMD_HISS:
+            return 'L';
+        case CMD_SCRATCH:
+            return 'R';
+        case CMD_YOWL:
+            return 'Y';
+        case CMD_HEAL:
+            return 'A';
+        default:
+            return '-';
+    }
+}
+
+static void drawAiDebug(const AiDebugSnapshot *debug_ai)
+{
+    char profile[96];
+    char tickets[64];
+    char memory[64];
+    char history[AI_MEMORY_CAPACITY];
+    unsigned int index;
+    uint16_t cream = RGB15(31, 29, 23);
+    uint16_t panel = RGB15(4, 3, 8);
+
+    if (debug_ai == NULL) {
+        return;
+    }
+    for (index = 0u; index < AI_MEMORY_CAPACITY; ++index) {
+        history[index] = index < debug_ai->player_history_count ?
+                         commandKey(debug_ai->player_history[index]) : '-';
+    }
+    snprintf(profile, sizeof(profile), "%s: %s  %s: %u",
+             textGet(TEXT_DEBUG_AI_PROFILE),
+             textGet(profileTextId(debug_ai->profile)),
+             textGet(TEXT_DEBUG_AI_OBSERVATION),
+             (unsigned int)debug_ai->observe_frames_remaining);
+    snprintf(tickets, sizeof(tickets), "L%u R%u Y%u A%u",
+             (unsigned int)debug_ai->ticket[CMD_HISS],
+             (unsigned int)debug_ai->ticket[CMD_SCRATCH],
+             (unsigned int)debug_ai->ticket[CMD_YOWL],
+             (unsigned int)debug_ai->ticket[CMD_HEAL]);
+    snprintf(memory, sizeof(memory), "%s: %c %c %c %c",
+             textGet(TEXT_DEBUG_AI_MEMORY), history[0], history[1],
+             history[2], history[3]);
+
+    graphicsTopFillRect(0, 143, 256, 49, panel);
+    graphicsTextDrawTop(4, 145, FONT_SCALE_HALF, cream, profile);
+    graphicsTextDrawTop(4, 159, FONT_SCALE_HALF, cream, tickets);
+    graphicsTextDrawTop(4, 173, FONT_SCALE_HALF, cream, memory);
+}
+
 void battleAnimationDraw(const BattleAnimation *animation,
                          const BattleState *battle, CatId player_cat,
-                         CatId enemy_cat)
+                         CatId enemy_cat,
+                         const AiDebugSnapshot *debug_ai)
 {
     const char *player_name;
     const char *enemy_name;
@@ -390,6 +461,7 @@ void battleAnimationDraw(const BattleAnimation *animation,
     drawFighter(animation, battle, SIDE_AI, enemy_cat);
     drawParticles(animation);
     drawCaption(animation);
+    drawAiDebug(debug_ai);
     if (battle->paused) {
         const char *paused = textGet(TEXT_STATUS_PAUSED);
         int paused_x = (256 - fontTextWidth(paused, FONT_SCALE_ONE)) / 2;
@@ -404,12 +476,14 @@ void battleAnimationDraw(const BattleAnimation *animation,
 
 void battleAnimationDraw(const BattleAnimation *animation,
                          const BattleState *battle, CatId player_cat,
-                         CatId enemy_cat)
+                         CatId enemy_cat,
+                         const AiDebugSnapshot *debug_ai)
 {
     (void)animation;
     (void)battle;
     (void)player_cat;
     (void)enemy_cat;
+    (void)debug_ai;
 }
 
 #endif

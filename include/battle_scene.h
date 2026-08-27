@@ -1,6 +1,7 @@
 #ifndef BATTLE_SCENE_H
 #define BATTLE_SCENE_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "battle.h"
@@ -13,6 +14,7 @@ typedef struct BattleSetup {
     CatId enemy_cat;
     uint8_t crisis;
     uint32_t seed;
+    bool debug_ai;
 } BattleSetup;
 
 typedef enum BattleResult {

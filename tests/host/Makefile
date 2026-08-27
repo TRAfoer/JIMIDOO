@@ -85,8 +85,8 @@ test_title_scene_draw.exe: test_title_scene_draw.c ../../include/ui_scene.h ../.
 test_debug_scene.exe: test_debug_scene.c ../../include/debug_scene.h ../../source/ui/debug_scene.c stubs/nds.h
 	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /Istubs /I../../include test_debug_scene.c ../../source/ui/debug_scene.c /Fe:$@'
 
-test_debug_scene_draw.exe: test_debug_scene_draw.c ../../include/debug_scene.h ../../include/graphics_service.h ../../include/localization.h ../../source/ui/debug_scene_view.c ../../source/ai/ai.c stubs/nds.h
-	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /Istubs /I../../include test_debug_scene_draw.c ../../source/ui/debug_scene_view.c ../../source/ai/ai.c /Fe:$@'
+test_debug_scene_draw.exe: test_debug_scene_draw.c ../../include/debug_scene.h ../../include/graphics_service.h ../../include/localization.h ../../source/ui/debug_scene_view.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/battle/battle_rng.c stubs/nds.h
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /Istubs /I../../include test_debug_scene_draw.c ../../source/ui/debug_scene_view.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/battle/battle_rng.c /Fe:$@'
 
 test_battle.exe: test_battle.c ../../include/battle.h ../../include/battle_rng.h ../../source/battle/battle_core.c ../../source/battle/battle_rng.c
 	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_battle.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c /Fe:$@'
@@ -109,20 +109,20 @@ test_ai_brain.exe: test_ai_brain.c ../../include/ai.h ../../source/ai/ai.c ../..
 test_ai_brain: test_ai_brain.exe
 	./test_ai_brain.exe
 
-test_touch_layout.exe: test_touch_layout.c ../../include/battle_scene.h ../../include/battle_scene_internal.h ../../include/battle.h ../../source/ui/battle_scene.c ../../source/ui/battle_hud.c
-	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_touch_layout.c ../../source/ui/battle_scene.c ../../source/ui/battle_hud.c /Fe:$@'
+test_touch_layout.exe: test_touch_layout.c ../../include/ai.h ../../include/battle_scene.h ../../include/battle_scene_internal.h ../../include/battle.h ../../source/ui/battle_scene.c ../../source/ui/battle_hud.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/ai/ai_brain.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_touch_layout.c ../../source/ui/battle_scene.c ../../source/ui/battle_hud.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/ai/ai_brain.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c /Fe:$@'
 
 test_touch_layout: test_touch_layout.exe
 	./test_touch_layout.exe
 
-test_battle_scene_policy.exe: test_battle_scene_policy.c ../../include/battle_scene_internal.h ../../include/battle.h ../../source/ui/battle_scene.c
-	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_battle_scene_policy.c ../../source/ui/battle_scene.c /Fe:$@'
+test_battle_scene_policy.exe: test_battle_scene_policy.c ../../include/ai.h ../../include/battle_scene_internal.h ../../include/battle.h ../../source/ui/battle_scene.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/ai/ai_brain.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_battle_scene_policy.c ../../source/ui/battle_scene.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/ai/ai_brain.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c /Fe:$@'
 
 test_battle_scene_policy: test_battle_scene_policy.exe
 	./test_battle_scene_policy.exe
 
-test_battle_animation.exe: test_battle_animation.c ../../include/battle_scene_internal.h ../../include/battle.h ../../source/graphics/battle_animation.c
-	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_battle_animation.c ../../source/graphics/battle_animation.c /Fe:$@'
+test_battle_animation.exe: test_battle_animation.c ../../include/ai.h ../../include/battle_scene_internal.h ../../include/battle.h ../../source/graphics/battle_animation.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c stubs/nds.h
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /D__NDS__ /Istubs /I../../include test_battle_animation.c ../../source/graphics/battle_animation.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c /Fe:$@'
 
 test_battle_animation: test_battle_animation.exe
 	./test_battle_animation.exe

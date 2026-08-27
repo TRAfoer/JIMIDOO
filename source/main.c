@@ -37,7 +37,7 @@ static FighterSpec fighterSpecForCat(CatId cat)
     return fighter;
 }
 
-static BattleSetup debugBattleSetup(uint8_t crisis)
+static BattleSetup debugBattleSetup(uint8_t crisis, bool debug_ai)
 {
     BattleSetup setup;
 
@@ -47,6 +47,7 @@ static BattleSetup debugBattleSetup(uint8_t crisis)
     setup.enemy = fighterSpecForCat(setup.enemy_cat);
     setup.crisis = crisis;
     setup.seed = UINT32_C(0x4A694D69);
+    setup.debug_ai = debug_ai;
     return setup;
 }
 
@@ -89,7 +90,8 @@ int main(void)
                 crisis = debug_crisis;
             }
             if (start_battle) {
-                BattleSetup setup = debugBattleSetup(crisis);
+                BattleSetup setup = debugBattleSetup(
+                    crisis, launch == DEBUG_TITLE_LAUNCH_MENU);
 
                 audioPlaySfx(SFX_ID_START);
                 (void)battleSceneRun(&setup);

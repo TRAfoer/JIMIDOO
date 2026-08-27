@@ -60,10 +60,7 @@ typedef struct AiDebugSnapshot {
 } AiDebugSnapshot;
 
 AiScores aiScoreActions(const BattleState *battle, Side side);
-uint16_t aiBestActionPercent(uint8_t crisis);
 uint16_t aiActionProbabilityCap(uint8_t crisis);
-BattleCommand aiChoose(const BattleState *battle, Side side, uint8_t crisis,
-                       BattleRandom random, void *random_context);
 void aiBrainInit(AiBrain *brain, uint32_t battle_seed);
 void aiBrainRecordAccepted(AiBrain *brain, Side side, BattleCommand command);
 BattleCommand aiBrainChooseNow(AiBrain *brain, const BattleState *battle,

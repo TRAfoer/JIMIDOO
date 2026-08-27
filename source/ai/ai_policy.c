@@ -117,6 +117,18 @@ static uint8_t aiPolicyNoiseLimit(uint8_t crisis)
     return 15u;
 }
 
+int8_t aiPolicyGenerateNoise(BattleRng *rng, uint8_t crisis)
+{
+    uint8_t limit;
+
+    if (rng == 0) {
+        return 0;
+    }
+    limit = aiPolicyNoiseLimit(crisis);
+    return (int8_t)(battleRngNext(rng) % (limit * 2u + 1u)) -
+           (int8_t)limit;
+}
+
 uint16_t aiActionProbabilityCap(uint8_t crisis)
 {
     if (crisis <= 24u) {
@@ -229,17 +241,6 @@ AiWeights aiPolicyWeights(const BattleState *battle, Side side,
         weights.value[command] = weight == 0u ? 1u : weight;
     }
     return weights;
-}
-
-static uint64_t aiPolicyWeightTotal(const AiWeights *weights)
-{
-    uint64_t total = 0u;
-    BattleCommand command;
-
-    for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
-        total = aiPolicyAddSaturating(total, weights->value[command]);
-    }
-    return total;
 }
 
 static uint16_t aiPolicyShare(uint64_t weight, uint64_t total,
@@ -422,7 +423,7 @@ void aiBrainRecordAccepted(AiBrain *brain, Side side, BattleCommand command)
         if (brain->memory.player_count < AI_MEMORY_CAPACITY) {
             ++brain->memory.player_count;
         }
-        if (brain->opening_waiting) {
+        if (!brain->opening_choice_made) {
             brain->opening_frames_remaining = 0u;
             brain->opening_choice_made = true;
             brain->opening_waiting = false;
@@ -453,7 +454,6 @@ BattleCommand aiBrainChooseNow(AiBrain *brain, const BattleState *battle,
     AiTickets tickets;
     uint16_t roll;
     uint16_t cumulative = 0u;
-    uint8_t noise_limit;
     BattleCommand command;
 
     if (brain == 0) {
@@ -462,10 +462,7 @@ BattleCommand aiBrainChooseNow(AiBrain *brain, const BattleState *battle,
     scores = aiScoreActions(battle, side);
     for (command = CMD_HISS; command <= CMD_HEAL; ++command) {
         if (scores.score[command] != AI_SCORE_FORBIDDEN) {
-            noise_limit = aiPolicyNoiseLimit(crisis);
-            noise[command] = (int8_t)(battleRngNext(&brain->rng) %
-                                      (noise_limit * 2u + 1u)) -
-                             (int8_t)noise_limit;
+            noise[command] = aiPolicyGenerateNoise(&brain->rng, crisis);
         }
     }
     weights = aiPolicyWeights(battle, side, crisis, brain->profile,

@@ -55,6 +55,28 @@ static void test_accepted_player_submission_records_newest_and_ends_waiting(void
     assert(presentation.command == CMD_HISS);
 }
 
+static void test_first_frame_player_submission_ends_opening_before_ai_tick(void)
+{
+    BattleState battle;
+    BattleSceneRouteState route;
+    BattlePresentation presentation;
+    AiBrain brain;
+
+    init_submission_fixture(&battle, &route, &brain);
+    assert(!brain.opening_choice_made);
+    assert(!brain.opening_waiting);
+    assert(battleSceneSubmit(&battle, &route, &brain, SIDE_PLAYER,
+                             CMD_HISS, &presentation));
+    assert(brain.opening_choice_made);
+    assert(!brain.opening_waiting);
+    assert(brain.opening_frames_remaining == 0u);
+
+    (void)aiBrainTick(&brain, &battle, SIDE_AI, 1u);
+    assert(brain.opening_choice_made);
+    assert(!brain.opening_waiting);
+    assert(brain.opening_frames_remaining == 0u);
+}
+
 static void test_accepted_ai_submission_updates_repetition(void)
 {
     BattleState battle;
@@ -232,6 +254,7 @@ int main(void)
 {
     test_rejected_submission_does_not_enter_ai_history();
     test_accepted_player_submission_records_newest_and_ends_waiting();
+    test_first_frame_player_submission_ends_opening_before_ai_tick();
     test_accepted_ai_submission_updates_repetition();
     test_deferred_scratch_records_but_has_no_immediate_presentation();
     test_automatic_counter_presents_defender_hiss_once();

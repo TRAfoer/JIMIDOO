@@ -143,6 +143,107 @@ static void test_profile_multipliers_apply_to_base_weights(void)
     assert(aggressive.value[CMD_HEAL] == 0u);
 }
 
+static void test_legal_heal_profile_multipliers_and_hiss_suppression(void)
+{
+    BattleState battle = battle_fixture();
+    AiMemory empty_memory = { { CMD_NONE }, 0u, CMD_NONE, 0u };
+    AiMemory one_hiss = memory_with(CMD_HISS, 1u);
+    AiMemory four_hisses = memory_with(CMD_HISS, AI_MEMORY_CAPACITY);
+    const int8_t noise[CMD_HEAL + 1] = { 0 };
+    static const uint64_t expected_heal[AI_PROFILE_COUNT] = {
+        UINT64_C(150), UINT64_C(180), UINT64_C(160),
+        UINT64_C(300), UINT64_C(200), UINT64_C(200)
+    };
+    unsigned int profile;
+    AiWeights weights;
+
+    battle.fighter[SIDE_AI].hp = 60;
+    for (profile = 0u; profile < AI_PROFILE_COUNT; ++profile) {
+        weights = aiPolicyWeights(&battle, SIDE_AI, 255u,
+                                  (AiProfile)profile, &empty_memory, noise);
+        assert(weights.value[CMD_HEAL] == expected_heal[profile]);
+    }
+
+    weights = aiPolicyWeights(&battle, SIDE_AI, 255u,
+                              AI_PROFILE_OPPORTUNIST, &one_hiss, noise);
+    assert(weights.value[CMD_HEAL] == UINT64_C(136));
+    weights = aiPolicyWeights(&battle, SIDE_AI, 255u,
+                              AI_PROFILE_OPPORTUNIST, &four_hisses, noise);
+    assert(weights.value[CMD_HEAL] == UINT64_C(50));
+}
+
+static void test_all_crisis_memory_use_boundaries(void)
+{
+    typedef struct MemoryBoundaryCase {
+        uint8_t crisis;
+        uint64_t expected_hiss;
+    } MemoryBoundaryCase;
+    static const MemoryBoundaryCase cases[] = {
+        { 1u, UINT64_C(120) },
+        { 24u, UINT64_C(120) },
+        { 25u, UINT64_C(136) },
+        { 74u, UINT64_C(136) },
+        { 75u, UINT64_C(152) },
+        { 149u, UINT64_C(152) },
+        { 150u, UINT64_C(164) },
+        { 224u, UINT64_C(164) },
+        { 225u, UINT64_C(180) },
+        { 255u, UINT64_C(180) }
+    };
+    BattleState battle = battle_fixture();
+    AiMemory memory = memory_with(CMD_HEAL, 1u);
+    const int8_t noise[CMD_HEAL + 1] = { 0 };
+    unsigned int index;
+
+    for (index = 0u; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+        AiWeights weights = aiPolicyWeights(
+            &battle, SIDE_AI, cases[index].crisis,
+            AI_PROFILE_OPPORTUNIST, &memory, noise);
+
+        assert(weights.value[CMD_HISS] == cases[index].expected_hiss);
+    }
+}
+
+static void test_all_generated_noise_ranges_are_inclusive(void)
+{
+    typedef struct NoiseRangeCase {
+        uint8_t crisis;
+        int8_t minimum;
+        int8_t maximum;
+    } NoiseRangeCase;
+    static const NoiseRangeCase cases[] = {
+        { 1u, -35, 35 },
+        { 25u, -30, 30 },
+        { 75u, -25, 25 },
+        { 150u, -20, 20 },
+        { 225u, -15, 15 }
+    };
+    unsigned int index;
+
+    for (index = 0u; index < sizeof(cases) / sizeof(cases[0]); ++index) {
+        BattleRng rng;
+        int8_t observed_minimum = INT8_MAX;
+        int8_t observed_maximum = INT8_MIN;
+        unsigned int sample;
+
+        battleRngSeed(&rng, UINT32_C(0xC001D00D));
+        for (sample = 0u; sample < 10000u; ++sample) {
+            int8_t noise = aiPolicyGenerateNoise(&rng, cases[index].crisis);
+
+            assert(noise >= cases[index].minimum);
+            assert(noise <= cases[index].maximum);
+            if (noise < observed_minimum) {
+                observed_minimum = noise;
+            }
+            if (noise > observed_maximum) {
+                observed_maximum = noise;
+            }
+        }
+        assert(observed_minimum == cases[index].minimum);
+        assert(observed_maximum == cases[index].maximum);
+    }
+}
+
 static void test_memory_responses_use_recency_and_crisis_scaling(void)
 {
     BattleState battle = battle_fixture();
@@ -314,6 +415,9 @@ int main(void)
     test_seeded_brains_and_player_history_are_deterministic();
     test_accepted_ai_actions_track_saturating_repetition();
     test_profile_multipliers_apply_to_base_weights();
+    test_legal_heal_profile_multipliers_and_hiss_suppression();
+    test_all_crisis_memory_use_boundaries();
+    test_all_generated_noise_ranges_are_inclusive();
     test_memory_responses_use_recency_and_crisis_scaling();
     test_repeat_penalties_preserve_decisive_actions();
     test_ticket_normalization_is_capped_and_ordered();

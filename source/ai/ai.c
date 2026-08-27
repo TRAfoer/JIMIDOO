@@ -149,19 +149,7 @@ static uint16_t aiRoll(BattleRandom random, void *random_context,
 
 uint16_t aiBestActionPercent(uint8_t crisis)
 {
-    if (crisis <= 24u) {
-        return 35u;
-    }
-    if (crisis <= 74u) {
-        return 55u;
-    }
-    if (crisis <= 149u) {
-        return 70u;
-    }
-    if (crisis <= 224u) {
-        return 80u;
-    }
-    return 85u;
+    return aiActionProbabilityCap(crisis);
 }
 
 BattleCommand aiChoose(const BattleState *battle, Side side, uint8_t crisis,

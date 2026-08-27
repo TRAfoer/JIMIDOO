@@ -13,9 +13,9 @@ endif
 
 MSVC_SETUP = $(if $(filter __PATH__,$(VCVARS)),,call "$(VCVARS)" >nul && )
 
-TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_texture_cache.exe test_battle_background.exe test_font_layout.exe test_scene_init.exe test_title_scene_draw.exe test_debug_scene.exe test_debug_scene_draw.exe test_battle.exe test_ai.exe test_ai_policy.exe test_touch_layout.exe test_battle_scene_policy.exe test_battle_animation.exe
+TESTS := test_config.exe test_localization.exe test_audio_service.exe test_music_stream.exe test_texture_ids.exe test_texture_cache.exe test_battle_background.exe test_font_layout.exe test_scene_init.exe test_title_scene_draw.exe test_debug_scene.exe test_debug_scene_draw.exe test_battle.exe test_ai.exe test_ai_policy.exe test_ai_brain.exe test_touch_layout.exe test_battle_scene_policy.exe test_battle_animation.exe
 
-.PHONY: all clean host-test test_localization test_battle test_ai test_touch_layout test_battle_scene_policy test_battle_animation
+.PHONY: all clean host-test test_localization test_battle test_ai test_ai_brain test_touch_layout test_battle_scene_policy test_battle_animation
 
 all: host-test
 
@@ -35,6 +35,7 @@ host-test: $(TESTS)
 	./test_battle.exe
 	./test_ai.exe
 	./test_ai_policy.exe
+	./test_ai_brain.exe
 	./test_touch_layout.exe
 	./test_battle_scene_policy.exe
 	./test_battle_animation.exe
@@ -101,6 +102,12 @@ test_ai: test_ai.exe
 
 test_ai_policy.exe: test_ai_policy.c ../../include/ai.h ../../include/ai_internal.h ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c
 	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_ai_policy.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c /Fe:$@'
+
+test_ai_brain.exe: test_ai_brain.c ../../include/ai.h ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/ai/ai_brain.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c
+	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_ai_brain.c ../../source/ai/ai.c ../../source/ai/ai_policy.c ../../source/ai/ai_brain.c ../../source/battle/battle_core.c ../../source/battle/battle_rng.c /Fe:$@'
+
+test_ai_brain: test_ai_brain.exe
+	./test_ai_brain.exe
 
 test_touch_layout.exe: test_touch_layout.c ../../include/battle_scene.h ../../include/battle_scene_internal.h ../../include/battle.h ../../source/ui/battle_scene.c ../../source/ui/battle_hud.c
 	$$env:TEMP = (Get-Location).Path; $$env:TMP = $$env:TEMP; cmd.exe /c '$(MSVC_SETUP)cl.exe /nologo /std:c11 /W4 /WX /I../../include test_touch_layout.c ../../source/ui/battle_scene.c ../../source/ui/battle_hud.c /Fe:$@'

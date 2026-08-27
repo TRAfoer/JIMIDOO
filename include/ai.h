@@ -26,7 +26,9 @@ typedef enum AiProfile {
 
 enum {
     AI_MEMORY_CAPACITY = 4,
-    AI_TICKET_TOTAL = 10000
+    AI_TICKET_TOTAL = 10000,
+    AI_OPENING_PATIENCE_FRAMES = 120,
+    AI_MAX_OBSERVE_FRAMES = 36
 };
 
 typedef struct AiMemory {
@@ -41,7 +43,21 @@ typedef struct AiBrain {
     AiProfile profile;
     AiMemory memory;
     uint16_t last_ticket[CMD_HEAL + 1];
+    uint16_t opening_frames_remaining;
+    uint16_t observe_frames_remaining;
+    bool opening_choice_made;
+    bool opening_waiting;
+    bool observing;
 } AiBrain;
+
+typedef struct AiDebugSnapshot {
+    AiProfile profile;
+    BattleCommand player_history[AI_MEMORY_CAPACITY];
+    uint8_t player_history_count;
+    uint16_t opening_frames_remaining;
+    uint16_t observe_frames_remaining;
+    uint16_t ticket[CMD_HEAL + 1];
+} AiDebugSnapshot;
 
 AiScores aiScoreActions(const BattleState *battle, Side side);
 uint16_t aiBestActionPercent(uint8_t crisis);
@@ -52,5 +68,8 @@ void aiBrainInit(AiBrain *brain, uint32_t battle_seed);
 void aiBrainRecordAccepted(AiBrain *brain, Side side, BattleCommand command);
 BattleCommand aiBrainChooseNow(AiBrain *brain, const BattleState *battle,
                                Side side, uint8_t crisis);
+BattleCommand aiBrainTick(AiBrain *brain, const BattleState *battle,
+                          Side side, uint8_t crisis);
+void aiBrainSnapshot(const AiBrain *brain, AiDebugSnapshot *snapshot);
 
 #endif

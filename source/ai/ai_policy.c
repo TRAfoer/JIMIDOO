@@ -403,6 +403,7 @@ void aiBrainInit(AiBrain *brain, uint32_t battle_seed)
     memset(brain, 0, sizeof(*brain));
     battleRngSeed(&brain->rng, battle_seed ^ UINT32_C(0xA17E5EED));
     brain->profile = (AiProfile)(battleRngNext(&brain->rng) % AI_PROFILE_COUNT);
+    brain->opening_frames_remaining = AI_OPENING_PATIENCE_FRAMES;
 }
 
 void aiBrainRecordAccepted(AiBrain *brain, Side side, BattleCommand command)
@@ -421,6 +422,11 @@ void aiBrainRecordAccepted(AiBrain *brain, Side side, BattleCommand command)
         if (brain->memory.player_count < AI_MEMORY_CAPACITY) {
             ++brain->memory.player_count;
         }
+        if (brain->opening_waiting) {
+            brain->opening_frames_remaining = 0u;
+            brain->opening_choice_made = true;
+            brain->opening_waiting = false;
+        }
         return;
     }
     if (brain->memory.last_ai_action == command) {
@@ -430,6 +436,11 @@ void aiBrainRecordAccepted(AiBrain *brain, Side side, BattleCommand command)
     } else {
         brain->memory.last_ai_action = command;
         brain->memory.ai_repeat_count = 1u;
+    }
+    if (command == CMD_YOWL) {
+        brain->opening_frames_remaining = 0u;
+        brain->opening_choice_made = true;
+        brain->opening_waiting = false;
     }
 }
 
